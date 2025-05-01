@@ -11,6 +11,7 @@ import { useAuth } from "./components/AuthContext";
 import TrainerDashboard from "./components/TrainerDashboard";
 import { LogOut } from "lucide-react-native";
 import MockBottomTabNavigator from "./components/MockBottomTabNavigator";
+import BottomTabNavigator from "./components/BottomTabNavigator";
 
 export default function DashboardScreen() {
   const { userRole, isLoggedIn, logout } = useAuth();
@@ -74,29 +75,11 @@ export default function DashboardScreen() {
     );
   }
 
-  // For client role, show the mock bottom tab navigator instead of the real one
-  // This avoids navigation container issues
+  // For client role, show the bottom tab navigator
   return (
-    <ScrollView className="flex-1 bg-pink-50">
-      <View className="flex-row justify-between items-center p-4 bg-pink-800">
-        <Text className="text-xl font-bold text-white">Client Dashboard</Text>
-        <TouchableOpacity
-          onPress={handleLogout}
-          className="flex-row items-center bg-pink-700 px-3 py-2 rounded-lg"
-        >
-          <LogOut size={18} color="white" />
-          <Text className="text-white ml-1 font-medium">Logout</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1 }}
-        showsVerticalScrollIndicator={true}
-      >
-        <ClientHome />
-      </ScrollView>
-    </ScrollView>
+    <SafeAreaView className="flex-1 bg-pink-50">
+      <BottomTabNavigator />
+    </SafeAreaView>
   );
 }
 
