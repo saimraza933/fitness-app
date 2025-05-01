@@ -7,9 +7,16 @@ import {
   ScrollView,
   Image,
   RefreshControl,
+  Alert,
+  Modal,
 } from "react-native";
+import { useRouter } from "expo-router";
 import {
+  ArrowLeft,
   Dumbbell,
+  Clock,
+  Flame,
+  Play,
   Utensils,
   Scale,
   CheckCircle,
@@ -23,6 +30,7 @@ interface WorkoutItem {
   sets: number;
   reps: number;
   completed: boolean;
+  inProgress?: boolean;
   imageUrl?: string;
 }
 
@@ -36,8 +44,14 @@ interface MealItem {
 }
 
 const ClientHome = () => {
+  const router = useRouter();
   const [weight, setWeight] = useState("");
+  const [weightSaved, setWeightSaved] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
+  const [weightHistory, setWeightHistory] = useState<
+    { date: string; weight: string }[]
+  >([]);
   const [workouts, setWorkouts] = useState<WorkoutItem[]>([
     {
       id: "1",
@@ -143,6 +157,29 @@ const ClientHome = () => {
     );
   };
 
+  // Mock API call to save weight
+  const saveWeight = () => {
+    if (!weight) {
+      Alert.alert("Error", "Please enter your weight");
+      return;
+    }
+
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      const today = new Date().toLocaleDateString();
+      setWeightHistory((prev) => [...prev, { date: today, weight }]);
+      setWeightSaved(true);
+      setRefreshing(false);
+
+      // Show success message
+      Alert.alert("Success", "Weight saved successfully");
+
+      // Reset saved state after 3 seconds
+      setTimeout(() => setWeightSaved(false), 3000);
+    }, 1000);
+  };
+
   const onRefresh = React.useCallback(() => {
     setRefreshing(true);
     // Simulate a refresh
@@ -150,6 +187,17 @@ const ClientHome = () => {
       setRefreshing(false);
     }, 1000);
   }, []);
+
+  // Workout details data
+  const workoutDetails = {
+    title: "Full Body Strength",
+    duration: "45 min",
+    calories: "320",
+    difficulty: "Intermediate",
+    description:
+      "This full-body workout focuses on building strength and endurance with a mix of compound exercises.",
+    exercises: workouts,
+  };
 
   return (
     <View className="bg-pink-50 p-4">
@@ -195,8 +243,14 @@ const ClientHome = () => {
             value={weight}
             onChangeText={setWeight}
           />
-          <TouchableOpacity className="bg-pink-600 py-2 px-4 rounded-lg">
-            <Text className="text-white font-semibold">Save</Text>
+          <TouchableOpacity
+            className={`${weightSaved ? "bg-green-600" : "bg-pink-600"} py-2 px-4 rounded-lg`}
+            onPress={saveWeight}
+            disabled={refreshing}
+          >
+            <Text className="text-white font-semibold">
+              {weightSaved ? "Saved" : "Save"}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -248,7 +302,10 @@ const ClientHome = () => {
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start">
+        <TouchableOpacity
+          className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+          onPress={() => setShowWorkoutDetails(true)}
+        >
           <Text className="text-pink-800 font-medium">View Details</Text>
         </TouchableOpacity>
       </View>
@@ -290,14 +347,133 @@ const ClientHome = () => {
           </TouchableOpacity>
         ))}
 
-        <TouchableOpacity className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start">
+        <TouchableOpacity
+          className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+          onPress={() => router.push("/nutrition-info")}
+        >
           <Text className="text-pink-800 font-medium">View Nutrition Info</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity className="bg-pink-600 py-3 px-4 rounded-lg items-center mb-10">
+      <TouchableOpacity
+        className="bg-pink-600 py-3 px-4 rounded-lg items-center mb-10"
+        onPress={() => router.push("/dashboard", { screen: "Progress" })}
+      >
         <Text className="text-white font-semibold text-lg">View Progress</Text>
       </TouchableOpacity>
+      {/* Workout Details Modal */}
+      <Modal
+        visible={showWorkoutDetails}
+        animationType="slide"
+        onRequestClose={() => setShowWorkoutDetails(false)}
+      >
+        <View className="flex-1 bg-pink-50">
+          <View className="flex-row items-center p-4 bg-white border-b border-gray-200">
+            <TouchableOpacity onPress={() => setShowWorkoutDetails(false)}>
+              <ArrowLeft size={24} color="#be185d" />
+            </TouchableOpacity>
+            <Text className="text-xl font-bold text-pink-800 ml-4">
+              Workout Details
+            </Text>
+          </View>
+
+          <ScrollView className="flex-1">
+            {/* Workout Header */}
+            <View className="bg-pink-800 p-6">
+              <Text className="text-2xl font-bold text-white mb-2">
+                {workoutDetails.title}
+              </Text>
+              <View className="flex-row mt-2">
+                <View className="flex-row items-center mr-4">
+                  <Clock size={16} color="#f9a8d4" />
+                  <Text className="text-pink-200 ml-1">
+                    {workoutDetails.duration}
+                  </Text>
+                </View>
+                <View className="flex-row items-center">
+                  <Flame size={16} color="#f9a8d4" />
+                  <Text className="text-pink-200 ml-1">
+                    {workoutDetails.calories} cal
+                  </Text>
+                </View>
+              </View>
+              <Text className="text-pink-200 mt-2">
+                {workoutDetails.difficulty}
+              </Text>
+            </View>
+
+            {/* Workout Description */}
+            <View className="p-4 bg-white mb-4">
+              <Text className="text-gray-700">
+                {workoutDetails.description}
+              </Text>
+            </View>
+
+            {/* Exercise List */}
+            <View className="p-4">
+              <Text className="text-xl font-bold text-pink-800 mb-4">
+                Exercises
+              </Text>
+
+              {workoutDetails.exercises.map((exercise) => (
+                <View
+                  key={exercise.id}
+                  className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden"
+                >
+                  {exercise.imageUrl && (
+                    <Image
+                      source={{ uri: exercise.imageUrl }}
+                      className="w-full h-48"
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View className="p-4">
+                    <Text className="text-lg font-bold text-gray-800 mb-1">
+                      {exercise.name}
+                    </Text>
+                    <Text className="text-pink-600 font-medium mb-2">
+                      {exercise.sets} sets × {exercise.reps}{" "}
+                      {exercise.reps > 1 ? "reps" : "rep"}
+                    </Text>
+                    <Text className="text-gray-600">
+                      Perform {exercise.sets} sets of {exercise.reps}{" "}
+                      repetitions with proper form.
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Start Workout Button */}
+            <View className="p-4 mb-8">
+              <TouchableOpacity
+                className="bg-pink-600 py-4 rounded-xl flex-row justify-center items-center"
+                onPress={() => {
+                  // Mark all workouts as in progress
+                  setWorkouts(
+                    workouts.map((workout) => ({
+                      ...workout,
+                      inProgress: true,
+                    })),
+                  );
+                  // Close the modal immediately
+                  setShowWorkoutDetails(false);
+                  // Show feedback to the user
+                  Alert.alert(
+                    "Workout Started",
+                    "Your workout timer has begun. Good luck!",
+                  );
+                }}
+              >
+                <Play size={20} color="white" fill="white" />
+                <Text className="text-white font-bold text-lg ml-2">
+                  Start Workout
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
     </View>
   );
 };

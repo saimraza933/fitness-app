@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useRouter } from "expo-router";
 import {
   View,
   Text,
@@ -18,6 +19,7 @@ import {
 const { width: screenWidth } = Dimensions.get("window");
 
 const ProgressSection = () => {
+  const router = useRouter();
   // Mock data for charts
   const [weightData, setWeightData] = useState([
     { date: "May 1", weight: 150 },
@@ -261,7 +263,10 @@ const ProgressSection = () => {
         </View>
 
         {/* Historical Data Button */}
-        <TouchableOpacity className="bg-pink-600 py-3 px-4 rounded-lg items-center mb-6">
+        <TouchableOpacity
+          className="bg-pink-600 py-3 px-4 rounded-lg items-center mb-6"
+          onPress={() => router.push("/historical-data")}
+        >
           <Text className="text-white font-semibold text-lg">
             View Historical Data
           </Text>

@@ -1,5 +1,13 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from "react-native";
+import { useRouter } from "expo-router";
 import {
   Calendar,
   ChevronLeft,
@@ -30,6 +38,7 @@ interface MealPlan {
 }
 
 const MyPlan = () => {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [workouts, setWorkouts] = useState<WorkoutExercise[]>([
     {
@@ -211,7 +220,20 @@ const MyPlan = () => {
             </TouchableOpacity>
           ))}
 
-          <TouchableOpacity className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start">
+          <TouchableOpacity
+            className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+            onPress={() => {
+              try {
+                router.push("/workout-details");
+              } catch (error) {
+                console.log("Navigation error:", error);
+                Alert.alert(
+                  "Workout Details",
+                  "This would navigate to workout details in the full app.",
+                );
+              }
+            }}
+          >
             <Text className="text-pink-800 font-medium">View Details</Text>
           </TouchableOpacity>
         </View>
