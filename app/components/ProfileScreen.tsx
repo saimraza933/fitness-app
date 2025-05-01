@@ -7,10 +7,26 @@ import {
   ScrollView,
   Image,
   Alert,
+  ActivityIndicator,
+  Modal,
+  Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "./AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Camera, Edit2, Save, Bell } from "lucide-react-native";
+import {
+  Camera,
+  Edit2,
+  Save,
+  Bell,
+  Trash2,
+  Lock,
+  LogOut,
+  AlertTriangle,
+  Clock,
+} from "lucide-react-native";
+import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 
 interface ProfileData {
   name: string;
@@ -20,11 +36,24 @@ interface ProfileData {
   goal: string;
   notificationsEnabled: boolean;
   notificationTime: string;
+  profilePicture?: string | null;
+  password?: string;
 }
 
 const ProfileScreen = () => {
-  const { userRole } = useAuth();
+  const { userRole, logout } = useAuth();
+  const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "Sarah Johnson",
     age: "28",
@@ -33,6 +62,8 @@ const ProfileScreen = () => {
     goal: "Lose 10 pounds and improve overall fitness",
     notificationsEnabled: true,
     notificationTime: "08:00",
+    profilePicture: null,
+    password: "password123", // Mock password for demo purposes
   });
 
   useEffect(() => {
@@ -68,6 +99,65 @@ const ProfileScreen = () => {
     });
   };
 
+  const pickImage = async () => {
+    try {
+      // Request permission to access the photo library
+      const { status } =
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== "granted") {
+        Alert.alert(
+          "Permission needed",
+          "Please grant permission to access your photos",
+        );
+        return;
+      }
+
+      setIsUploading(true);
+
+      // Launch the image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        // Update profile data with the selected image URI
+        setProfileData({
+          ...profileData,
+          profilePicture: result.assets[0].uri,
+        });
+
+        // Save the updated profile data
+        await saveProfileData();
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeProfilePicture = async () => {
+    try {
+      // Update profile data to remove the profile picture
+      setProfileData({
+        ...profileData,
+        profilePicture: null,
+      });
+
+      // Save the updated profile data
+      await saveProfileData();
+      Alert.alert("Success", "Profile picture removed");
+    } catch (error) {
+      console.error("Error removing profile picture:", error);
+      Alert.alert("Error", "Failed to remove profile picture");
+    }
+  };
+
   const requestNotificationPermission = () => {
     Alert.alert(
       "Enable Notifications",
@@ -85,21 +175,104 @@ const ProfileScreen = () => {
     );
   };
 
+  const handleChangePassword = () => {
+    setPasswordError("");
+
+    // Validate old password
+    if (oldPassword !== profileData.password) {
+      setPasswordError("Current password is incorrect");
+      return;
+    }
+
+    // Validate new password
+    if (newPassword.length < 6) {
+      setPasswordError("New password must be at least 6 characters");
+      return;
+    }
+
+    // Validate password confirmation
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords don't match");
+      return;
+    }
+
+    // Update password
+    setProfileData({
+      ...profileData,
+      password: newPassword,
+    });
+
+    // Reset fields and close modal
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setShowPasswordModal(false);
+
+    // Show success message
+    Alert.alert("Success", "Password changed successfully");
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      Alert.alert("Error", "Please type DELETE to confirm account deletion");
+      return;
+    }
+
+    try {
+      // Clear all user data
+      await AsyncStorage.clear();
+      await logout();
+
+      // Close modal
+      setShowDeleteAccountModal(false);
+      setDeleteConfirmText("");
+
+      // Navigate to login screen
+      setTimeout(() => {
+        router.replace("/login");
+      }, 100);
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      Alert.alert("Error", "Failed to delete account");
+    }
+  };
+
   return (
     <ScrollView className="flex-1 bg-pink-50">
       <View className="bg-pink-800 pt-12 pb-6 px-4 items-center">
         <View className="relative">
           <View className="w-24 h-24 rounded-full bg-pink-200 overflow-hidden border-4 border-white">
-            <Image
-              source={{
-                uri: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
-              }}
-              className="w-full h-full"
-            />
+            {isUploading ? (
+              <View className="w-full h-full items-center justify-center bg-gray-100">
+                <ActivityIndicator size="large" color="#be185d" />
+              </View>
+            ) : (
+              <Image
+                source={{
+                  uri:
+                    profileData.profilePicture ||
+                    "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
+                }}
+                className="w-full h-full"
+              />
+            )}
           </View>
-          <TouchableOpacity className="absolute bottom-0 right-0 bg-pink-600 p-2 rounded-full">
-            <Camera size={16} color="white" />
-          </TouchableOpacity>
+          <View className="flex-row absolute bottom-0 right-0">
+            {profileData.profilePicture && (
+              <TouchableOpacity
+                className="bg-red-500 p-2 rounded-full mr-2"
+                onPress={removeProfilePicture}
+              >
+                <Trash2 size={16} color="white" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              className="bg-pink-600 p-2 rounded-full"
+              onPress={pickImage}
+            >
+              <Camera size={16} color="white" />
+            </TouchableOpacity>
+          </View>
         </View>
         <Text className="text-2xl font-bold text-white mt-3">
           {profileData.name}
@@ -245,21 +418,276 @@ const ProfileScreen = () => {
           {profileData.notificationsEnabled && (
             <View>
               <Text className="text-gray-500 mb-2">Daily Reminder Time</Text>
-              <TextInput
-                className="border border-gray-300 rounded-lg p-2 text-gray-800"
-                value={profileData.notificationTime}
-                onChangeText={(text) =>
-                  setProfileData({ ...profileData, notificationTime: text })
-                }
-                placeholder="08:00"
-              />
+              <TouchableOpacity
+                className="border border-gray-300 rounded-lg p-2 flex-row items-center justify-between"
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Text className="text-gray-800">
+                  {profileData.notificationTime}
+                </Text>
+                <Clock size={16} color="#9ca3af" />
+              </TouchableOpacity>
+
+              {showTimePicker && (
+                <>
+                  {Platform.OS === "ios" ? (
+                    <View className="bg-white border border-gray-200 rounded-lg mt-2 p-2">
+                      <DateTimePicker
+                        value={(() => {
+                          const [hours, minutes] = profileData.notificationTime
+                            .split(":")
+                            .map(Number);
+                          const date = new Date();
+                          date.setHours(hours);
+                          date.setMinutes(minutes);
+                          return date;
+                        })()}
+                        mode="time"
+                        display="spinner"
+                        onChange={(event, selectedDate) => {
+                          setShowTimePicker(Platform.OS === "ios");
+                          if (selectedDate) {
+                            const hours = selectedDate
+                              .getHours()
+                              .toString()
+                              .padStart(2, "0");
+                            const minutes = selectedDate
+                              .getMinutes()
+                              .toString()
+                              .padStart(2, "0");
+                            setProfileData({
+                              ...profileData,
+                              notificationTime: `${hours}:${minutes}`,
+                            });
+                          }
+                        }}
+                      />
+                      <View className="flex-row justify-end mt-2">
+                        <TouchableOpacity
+                          className="bg-pink-600 py-1 px-3 rounded-lg"
+                          onPress={() => setShowTimePicker(false)}
+                        >
+                          <Text className="text-white font-medium">Done</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : (
+                    <DateTimePicker
+                      value={(() => {
+                        const [hours, minutes] = profileData.notificationTime
+                          .split(":")
+                          .map(Number);
+                        const date = new Date();
+                        date.setHours(hours);
+                        date.setMinutes(minutes);
+                        return date;
+                      })()}
+                      mode="time"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowTimePicker(false);
+                        if (selectedDate && event.type !== "dismissed") {
+                          const hours = selectedDate
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0");
+                          const minutes = selectedDate
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0");
+                          setProfileData({
+                            ...profileData,
+                            notificationTime: `${hours}:${minutes}`,
+                          });
+                        }
+                      }}
+                    />
+                  )}
+                </>
+              )}
+
               <Text className="text-xs text-gray-500 mt-1">
                 You'll receive daily reminders for your workouts and meals
               </Text>
             </View>
           )}
         </View>
+
+        {/* Security Settings */}
+        <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
+          <View className="flex-row items-center mb-4">
+            <Lock size={20} color="#be185d" />
+            <Text className="text-lg font-semibold text-pink-800 ml-2">
+              Security Settings
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3 border-b border-gray-100"
+            onPress={() => setShowPasswordModal(true)}
+          >
+            <Text className="text-gray-800 font-medium">Change Password</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3 border-b border-gray-100"
+            onPress={() => setShowDeleteAccountModal(true)}
+          >
+            <Text className="text-red-600 font-medium">Delete Account</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            className="flex-row items-center py-3"
+            onPress={async () => {
+              await logout();
+              router.replace("/login");
+            }}
+          >
+            <View className="flex-row items-center">
+              <LogOut size={18} color="#be185d" className="mr-2" />
+              <Text className="text-pink-800 font-medium ml-1">Logout</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
+
+      {/* Change Password Modal */}
+      <Modal
+        visible={showPasswordModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPasswordModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white w-5/6 rounded-xl p-6">
+            <Text className="text-xl font-bold text-pink-800 mb-4">
+              Change Password
+            </Text>
+
+            {passwordError ? (
+              <View className="bg-red-100 p-2 rounded-lg mb-4">
+                <Text className="text-red-600">{passwordError}</Text>
+              </View>
+            ) : null}
+
+            <View className="mb-4">
+              <Text className="text-gray-700 mb-1 font-medium">
+                Current Password
+              </Text>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl p-3 text-gray-800"
+                placeholder="••••••••"
+                secureTextEntry
+                value={oldPassword}
+                onChangeText={setOldPassword}
+              />
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-gray-700 mb-1 font-medium">
+                New Password
+              </Text>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl p-3 text-gray-800"
+                placeholder="••••••••"
+                secureTextEntry
+                value={newPassword}
+                onChangeText={setNewPassword}
+              />
+            </View>
+
+            <View className="mb-6">
+              <Text className="text-gray-700 mb-1 font-medium">
+                Confirm New Password
+              </Text>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl p-3 text-gray-800"
+                placeholder="••••••••"
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+            </View>
+
+            <View className="flex-row justify-end">
+              <TouchableOpacity
+                className="bg-gray-200 py-2 px-4 rounded-lg mr-2"
+                onPress={() => {
+                  setShowPasswordModal(false);
+                  setOldPassword("");
+                  setNewPassword("");
+                  setConfirmPassword("");
+                  setPasswordError("");
+                }}
+              >
+                <Text className="text-gray-800 font-medium">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="bg-pink-600 py-2 px-4 rounded-lg"
+                onPress={handleChangePassword}
+              >
+                <Text className="text-white font-medium">Update Password</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Account Modal */}
+      <Modal
+        visible={showDeleteAccountModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowDeleteAccountModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white w-5/6 rounded-xl p-6">
+            <View className="flex-row items-center mb-2">
+              <AlertTriangle size={24} color="#dc2626" />
+              <Text className="text-xl font-bold text-red-600 ml-2">
+                Delete Account
+              </Text>
+            </View>
+
+            <Text className="text-gray-700 mb-4">
+              This action cannot be undone. All your data will be permanently
+              deleted.
+            </Text>
+
+            <View className="bg-red-50 p-3 rounded-lg mb-4">
+              <Text className="text-red-600 font-medium mb-2">
+                To confirm, type "DELETE" below:
+              </Text>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl p-3 text-gray-800"
+                value={deleteConfirmText}
+                onChangeText={setDeleteConfirmText}
+                autoCapitalize="characters"
+              />
+            </View>
+
+            <View className="flex-row justify-end">
+              <TouchableOpacity
+                className="bg-gray-200 py-2 px-4 rounded-lg mr-2"
+                onPress={() => {
+                  setShowDeleteAccountModal(false);
+                  setDeleteConfirmText("");
+                }}
+              >
+                <Text className="text-gray-800 font-medium">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className="bg-red-600 py-2 px-4 rounded-lg"
+                onPress={handleDeleteAccount}
+              >
+                <Text className="text-white font-medium">Delete Account</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 };
