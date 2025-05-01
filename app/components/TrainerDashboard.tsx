@@ -5,6 +5,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Image,
 } from "react-native";
 import {
   Search,
@@ -13,6 +14,8 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
+  Scale,
+  Dumbbell,
 } from "lucide-react-native";
 
 interface Client {
@@ -22,9 +25,16 @@ interface Client {
   lastActive: string;
   progress: number;
   nextWorkout: string;
+  weight?: string;
+  plan?: string;
+  profilePicture?: string;
 }
 
-const TrainerDashboard = () => {
+interface TrainerDashboardProps {
+  onClientSelect?: (client: any) => void;
+}
+
+const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [clients, setClients] = useState<Client[]>([
     {
@@ -34,6 +44,10 @@ const TrainerDashboard = () => {
       lastActive: "Today",
       progress: 85,
       nextWorkout: "Today",
+      weight: "145 lbs",
+      plan: "Full Body Strength",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
     },
     {
       id: "2",
@@ -42,6 +56,10 @@ const TrainerDashboard = () => {
       lastActive: "Yesterday",
       progress: 70,
       nextWorkout: "Tomorrow",
+      weight: "132 lbs",
+      plan: "Weight Loss Program",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
     },
     {
       id: "3",
@@ -50,6 +68,10 @@ const TrainerDashboard = () => {
       lastActive: "3 days ago",
       progress: 50,
       nextWorkout: "Today",
+      weight: "158 lbs",
+      plan: "Cardio Focus",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
     },
     {
       id: "4",
@@ -58,6 +80,10 @@ const TrainerDashboard = () => {
       lastActive: "1 week ago",
       progress: 30,
       nextWorkout: "Not scheduled",
+      weight: "140 lbs",
+      plan: "Not assigned",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
     },
     {
       id: "5",
@@ -66,6 +92,10 @@ const TrainerDashboard = () => {
       lastActive: "Today",
       progress: 90,
       nextWorkout: "Tomorrow",
+      weight: "125 lbs",
+      plan: "Flexibility & Toning",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
     },
     {
       id: "6",
@@ -74,6 +104,10 @@ const TrainerDashboard = () => {
       lastActive: "Today",
       progress: 75,
       nextWorkout: "Today",
+      weight: "138 lbs",
+      plan: "Muscle Building",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
     },
   ]);
 
@@ -91,6 +125,22 @@ const TrainerDashboard = () => {
         return <AlertCircle size={16} color="#dc2626" />;
       default:
         return null;
+    }
+  };
+
+  const handleClientPress = (client: Client) => {
+    if (onClientSelect) {
+      // Add additional client details for the detail view
+      const clientWithDetails = {
+        ...client,
+        age: "28",
+        height: "5'6\"",
+        goal: "Lose 10 pounds and improve overall fitness",
+        email: `${client.name.toLowerCase().replace(" ", ".")}@example.com`,
+        phone: "(555) 123-4567",
+        joinDate: "May 15, 2023",
+      };
+      onClientSelect(clientWithDetails);
     }
   };
 
@@ -154,56 +204,83 @@ const TrainerDashboard = () => {
         {filteredClients.map((client) => (
           <TouchableOpacity
             key={client.id}
-            className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm flex-row justify-between items-center"
+            className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
+            onPress={() => handleClientPress(client)}
           >
-            <View className="flex-1">
-              <View className="flex-row items-center">
-                <Text className="font-semibold text-gray-800 text-lg">
-                  {client.name}
+            <View className="flex-row">
+              {/* Client Avatar */}
+              <View className="mr-3">
+                <View className="w-14 h-14 rounded-full overflow-hidden bg-pink-100">
+                  {client.profilePicture && (
+                    <Image
+                      source={{ uri: client.profilePicture }}
+                      className="w-full h-full"
+                    />
+                  )}
+                </View>
+              </View>
+
+              {/* Client Info */}
+              <View className="flex-1">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-row items-center">
+                    <Text className="font-semibold text-gray-800 text-lg">
+                      {client.name}
+                    </Text>
+                    <View className="ml-2 flex-row items-center">
+                      {getStatusIcon(client.status)}
+                      <Text className="ml-1 text-xs text-gray-500">
+                        {client.status}
+                      </Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={20} color="#9ca3af" />
+                </View>
+
+                <Text className="text-gray-500 text-sm">
+                  Last active: {client.lastActive}
                 </Text>
-                <View className="ml-2 flex-row items-center">
-                  {getStatusIcon(client.status)}
-                  <Text className="ml-1 text-xs text-gray-500">
-                    {client.status}
-                  </Text>
+
+                <View className="mt-2">
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs text-gray-500">Progress</Text>
+                    <Text className="text-xs font-medium">
+                      {client.progress}%
+                    </Text>
+                  </View>
+                  <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
+                    <View
+                      className="bg-pink-600 h-full rounded-full"
+                      style={{ width: `${client.progress}%` }}
+                    />
+                  </View>
+                </View>
+
+                <View className="flex-row justify-between mt-3">
+                  <View className="flex-row items-center">
+                    <Scale size={14} color="#be185d" />
+                    <Text className="text-sm ml-1 text-gray-700">
+                      {client.weight}
+                    </Text>
+                  </View>
+
+                  <View className="flex-row items-center">
+                    <Dumbbell size={14} color="#be185d" />
+                    <Text className="text-sm ml-1 text-gray-700">
+                      {client.plan}
+                    </Text>
+                  </View>
                 </View>
               </View>
-
-              <Text className="text-gray-500 text-sm">
-                Last active: {client.lastActive}
-              </Text>
-
-              <View className="mt-2">
-                <View className="flex-row justify-between mb-1">
-                  <Text className="text-xs text-gray-500">Progress</Text>
-                  <Text className="text-xs font-medium">
-                    {client.progress}%
-                  </Text>
-                </View>
-                <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
-                  <View
-                    className="bg-pink-600 h-full rounded-full"
-                    style={{ width: `${client.progress}%` }}
-                  />
-                </View>
-              </View>
-
-              <Text className="text-sm mt-2 text-pink-700">
-                Next workout: {client.nextWorkout}
-              </Text>
             </View>
-
-            <ChevronRight size={20} color="#9ca3af" />
           </TouchableOpacity>
         ))}
-      </ScrollView>
 
-      {/* Add Client Button */}
-      <View className="p-4">
-        <TouchableOpacity className="bg-pink-600 py-3 rounded-lg items-center">
+        {/* Add Client Button */}
+        <TouchableOpacity className="bg-pink-600 mx-4 py-3 rounded-lg items-center mb-8">
           <Text className="text-white font-semibold">Add New Client</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </View>
   );
 };

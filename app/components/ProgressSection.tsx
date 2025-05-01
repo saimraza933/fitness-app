@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Dimensions,
   Modal,
+  Image,
 } from "react-native";
 import {
   ArrowLeft,
@@ -16,15 +17,122 @@ import {
   Circle,
   ChevronDown,
   ChevronUp,
+  Users,
+  User,
+  ChevronRight,
 } from "lucide-react-native";
+import { useAuth } from "./AuthContext";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-const ProgressSection = () => {
+interface Client {
+  id: string;
+  name: string;
+  weight: string;
+  progress: number;
+  lastActive: string;
+  profilePicture?: string;
+  weightHistory?: { date: string; weight: number }[];
+  workoutHistory?: { month: string; completed: number; total: number }[];
+  nutritionHistory?: { month: string; adherence: number }[];
+}
+
+interface ProgressSectionProps {
+  onClientSelect?: (client: Client) => void;
+  selectedClient?: Client | null;
+}
+
+const ProgressSection = ({
+  onClientSelect,
+  selectedClient,
+}: ProgressSectionProps = {}) => {
+  const { userRole } = useAuth();
+  const isTrainer = userRole === "trainer";
   const [showHistoricalData, setShowHistoricalData] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("3 Months");
   const [expandedSection, setExpandedSection] = useState("weight");
-  // Mock data for charts
+  // Mock clients data for trainer view
+  const [clients, setClients] = useState<Client[]>([
+    {
+      id: "1",
+      name: "Sarah Johnson",
+      weight: "145 lbs",
+      progress: 85,
+      lastActive: "Today",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
+      weightHistory: [
+        { date: "Jan 1", weight: 150 },
+        { date: "Feb 1", weight: 148 },
+        { date: "Mar 1", weight: 146 },
+        { date: "Apr 1", weight: 145 },
+        { date: "May 1", weight: 144 },
+        { date: "Jun 1", weight: 143 },
+      ],
+      workoutHistory: [
+        { month: "January", completed: 18, total: 20 },
+        { month: "February", completed: 16, total: 20 },
+        { month: "March", completed: 19, total: 20 },
+        { month: "April", completed: 20, total: 20 },
+        { month: "May", completed: 18, total: 20 },
+        { month: "June", completed: 10, total: 12 },
+      ],
+      nutritionHistory: [
+        { month: "January", adherence: 80 },
+        { month: "February", adherence: 85 },
+        { month: "March", adherence: 90 },
+        { month: "April", adherence: 88 },
+        { month: "May", adherence: 92 },
+        { month: "June", adherence: 95 },
+      ],
+    },
+    {
+      id: "2",
+      name: "Emily Davis",
+      weight: "132 lbs",
+      progress: 70,
+      lastActive: "Yesterday",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
+      weightHistory: [
+        { date: "Jan 1", weight: 138 },
+        { date: "Feb 1", weight: 136 },
+        { date: "Mar 1", weight: 135 },
+        { date: "Apr 1", weight: 134 },
+        { date: "May 1", weight: 133 },
+        { date: "Jun 1", weight: 132 },
+      ],
+    },
+    {
+      id: "3",
+      name: "Jessica Wilson",
+      weight: "158 lbs",
+      progress: 50,
+      lastActive: "3 days ago",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
+    },
+    {
+      id: "4",
+      name: "Michelle Lee",
+      weight: "125 lbs",
+      progress: 90,
+      lastActive: "Today",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
+    },
+    {
+      id: "5",
+      name: "Rachel Taylor",
+      weight: "138 lbs",
+      progress: 75,
+      lastActive: "Today",
+      profilePicture:
+        "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
+    },
+  ]);
+
+  // Mock data for charts - for client view or selected client view
   const [weightData, setWeightData] = useState([
     { date: "May 1", weight: 150 },
     { date: "May 8", weight: 149 },
@@ -158,12 +266,109 @@ const ProgressSection = () => {
     }
   };
 
-  return (
-    <ScrollView className="flex-1 bg-pink-50">
+  // Render trainer view with client list
+  const renderTrainerView = () => {
+    if (selectedClient) {
+      return renderClientProgress(selectedClient);
+    }
+
+    return (
       <View className="p-4">
         <Text className="text-2xl font-bold text-pink-800 mb-6">
-          Your Progress
+          Client Progress
         </Text>
+
+        {/* Client List */}
+        {clients.map((client) => (
+          <TouchableOpacity
+            key={client.id}
+            className="bg-white mb-4 p-4 rounded-xl shadow-sm"
+            onPress={() => onClientSelect && onClientSelect(client)}
+          >
+            <View className="flex-row items-center">
+              <View className="w-12 h-12 rounded-full bg-pink-100 overflow-hidden mr-3">
+                {client.profilePicture && (
+                  <Image
+                    source={{ uri: client.profilePicture }}
+                    className="w-full h-full"
+                  />
+                )}
+              </View>
+
+              <View className="flex-1">
+                <View className="flex-row justify-between items-center">
+                  <Text className="font-semibold text-gray-800 text-lg">
+                    {client.name}
+                  </Text>
+                  <ChevronRight size={20} color="#9ca3af" />
+                </View>
+
+                <Text className="text-gray-500 text-sm">
+                  Last active: {client.lastActive}
+                </Text>
+
+                <View className="mt-2">
+                  <View className="flex-row justify-between mb-1">
+                    <Text className="text-xs text-gray-500">Progress</Text>
+                    <Text className="text-xs font-medium">
+                      {client.progress}%
+                    </Text>
+                  </View>
+                  <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
+                    <View
+                      className="bg-pink-600 h-full rounded-full"
+                      style={{ width: `${client.progress}%` }}
+                    />
+                  </View>
+                </View>
+
+                <View className="flex-row justify-between mt-2">
+                  <Text className="text-sm text-pink-700">
+                    Current weight: {client.weight}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  // Render client progress view (for individual client or current user)
+  const renderClientProgress = (client?: Client) => {
+    return [
+      // Main content view
+      <View key="main-content" className="p-4">
+        {client && isTrainer && (
+          <View className="flex-row items-center mb-4">
+            <TouchableOpacity
+              onPress={() => onClientSelect && onClientSelect(null)}
+              className="mr-3"
+            >
+              <ArrowLeft size={24} color="#be185d" />
+            </TouchableOpacity>
+            <View className="flex-row items-center">
+              <View className="w-10 h-10 rounded-full bg-pink-100 overflow-hidden mr-2">
+                {client.profilePicture && (
+                  <Image
+                    source={{ uri: client.profilePicture }}
+                    className="w-full h-full"
+                  />
+                )}
+              </View>
+              <Text className="text-xl font-bold text-pink-800">
+                {client.name}'s Progress
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {!client && (
+          <Text className="text-2xl font-bold text-pink-800 mb-6">
+            Your Progress
+          </Text>
+        )}
 
         {/* Weight Trend Chart - Line Chart */}
         <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
@@ -315,7 +520,11 @@ const ProgressSection = () => {
               },
               { title: "Consistent", desc: "5 days streak", unlocked: true },
               { title: "Weight Goal", desc: "Lost 5 lbs", unlocked: true },
-              { title: "Super User", desc: "30 days active", unlocked: false },
+              {
+                title: "Super User",
+                desc: "30 days active",
+                unlocked: false,
+              },
             ].map((achievement, index) => (
               <View
                 key={index}
@@ -345,10 +554,11 @@ const ProgressSection = () => {
             View Historical Data
           </Text>
         </TouchableOpacity>
-      </View>
+      </View>,
 
-      {/* Historical Data Modal */}
+      // Historical Data Modal
       <Modal
+        key="historical-modal"
         visible={showHistoricalData}
         animationType="slide"
         onRequestClose={() => setShowHistoricalData(false)}
@@ -661,7 +871,15 @@ const ProgressSection = () => {
             </View>
           </ScrollView>
         </View>
-      </Modal>
+      </Modal>,
+    ];
+  };
+
+  return (
+    <ScrollView className="flex-1 bg-pink-50">
+      {isTrainer && !selectedClient
+        ? renderTrainerView()
+        : renderClientProgress(selectedClient)}
     </ScrollView>
   );
 };

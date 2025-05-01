@@ -1,22 +1,30 @@
 import React, { useEffect, useState } from "react";
-import {
-  SafeAreaView,
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-} from "react-native";
+import { SafeAreaView, View, Text } from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "./components/AuthContext";
-import TrainerDashboard from "./components/TrainerDashboard";
-import { LogOut } from "lucide-react-native";
-import MockBottomTabNavigator from "./components/MockBottomTabNavigator";
 import BottomTabNavigator from "./components/BottomTabNavigator";
 
 export default function DashboardScreen() {
-  const { userRole, isLoggedIn, logout } = useAuth();
+  const { isLoggedIn, userRole } = useAuth();
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
+  const [forceRender, setForceRender] = useState(0);
+
+  console.log(
+    "Dashboard screen - user role:",
+    userRole,
+    "isLoggedIn:",
+    isLoggedIn,
+  );
+
+  // Force a re-render after component mounts to ensure we have the latest userRole
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceRender((prev) => prev + 1);
+      console.log("Forced re-render, current userRole:", userRole);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Mark component as mounted
@@ -34,14 +42,6 @@ export default function DashboardScreen() {
     }
   }, [isLoggedIn, isMounted, router]);
 
-  const handleLogout = async () => {
-    await logout();
-    // Use setTimeout to ensure navigation happens after state update
-    setTimeout(() => {
-      router.replace("/login");
-    }, 100);
-  };
-
   if (!isLoggedIn) {
     return (
       <View className="flex-1 bg-pink-50 justify-center items-center">
@@ -50,32 +50,7 @@ export default function DashboardScreen() {
     );
   }
 
-  // For trainer role, show the original dashboard
-  if (userRole === "trainer") {
-    return (
-      <SafeAreaView className="flex-1 bg-pink-50">
-        {/* Header with logout button */}
-        <View className="flex-row justify-between items-center p-4 bg-pink-800">
-          <Text className="text-xl font-bold text-white">
-            Trainer Dashboard
-          </Text>
-          <TouchableOpacity
-            onPress={handleLogout}
-            className="flex-row items-center bg-pink-700 px-3 py-2 rounded-lg"
-          >
-            <LogOut size={18} color="white" />
-            <Text className="text-white ml-1 font-medium">Logout</Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView className="flex-1">
-          <TrainerDashboard />
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-
-  // For client role, show the bottom tab navigator
+  // Use BottomTabNavigator for both client and trainer roles
   return (
     <SafeAreaView className="flex-1 bg-pink-50">
       <BottomTabNavigator />

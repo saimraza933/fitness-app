@@ -46,7 +46,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const storedRole = await AsyncStorage.getItem("user_role");
         const loggedIn = await AsyncStorage.getItem("is_logged_in");
 
+        console.log(
+          "AuthContext init - stored role:",
+          storedRole,
+          "logged in:",
+          loggedIn,
+        );
+
         if (storedRole && loggedIn === "true") {
+          console.log("Setting user role from storage to:", storedRole);
           setUserRole(storedRole as UserRole);
           setIsLoggedIn(true);
         }
@@ -59,6 +67,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log("Login attempt with email:", email);
+
     // Find user in our mock database
     const user = users.find(
       (u) =>
@@ -68,18 +78,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (user) {
       try {
-        // Store user role and login status
+        console.log("User found, role:", user.role);
+
+        // First update the state
+        setUserRole(user.role);
+        setIsLoggedIn(true);
+
+        // Then store in AsyncStorage
         await AsyncStorage.setItem("user_role", user.role);
         await AsyncStorage.setItem("is_logged_in", "true");
 
-        setUserRole(user.role);
-        setIsLoggedIn(true);
+        console.log("Login successful, user role set to:", user.role);
+
+        // Double check that the state was updated
+        setTimeout(() => {
+          console.log("After login, current userRole state:", user.role);
+        }, 100);
+
         return true;
       } catch (error) {
         console.error("Error storing auth data:", error);
         return false;
       }
     }
+    console.log("User not found with email:", email);
     return false;
   };
 
