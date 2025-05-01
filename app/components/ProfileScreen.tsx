@@ -55,10 +55,10 @@ const ProfileScreen = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const [profileData, setProfileData] = useState<ProfileData>({
-    name: "Sarah Johnson",
-    age: "28",
-    weight: "145",
-    height: "5'6\"",
+    name: userRole === "trainer" ? "John Smith" : "Sarah Johnson",
+    age: userRole === "trainer" ? "35" : "28",
+    weight: userRole === "trainer" ? "180" : "145",
+    height: userRole === "trainer" ? "6'1\"" : "5'6\"",
     goal: "Lose 10 pounds and improve overall fitness",
     notificationsEnabled: true,
     notificationTime: "08:00",
@@ -72,7 +72,9 @@ const ProfileScreen = () => {
 
   const loadProfileData = async () => {
     try {
-      const savedProfile = await AsyncStorage.getItem("user_profile");
+      const storageKey =
+        userRole === "trainer" ? "trainer_profile" : "user_profile";
+      const savedProfile = await AsyncStorage.getItem(storageKey);
       if (savedProfile) {
         setProfileData(JSON.parse(savedProfile));
       }
@@ -83,7 +85,9 @@ const ProfileScreen = () => {
 
   const saveProfileData = async () => {
     try {
-      await AsyncStorage.setItem("user_profile", JSON.stringify(profileData));
+      const storageKey =
+        userRole === "trainer" ? "trainer_profile" : "user_profile";
+      await AsyncStorage.setItem(storageKey, JSON.stringify(profileData));
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully");
     } catch (error) {
@@ -376,62 +380,106 @@ const ProfileScreen = () => {
             )}
           </View>
 
-          <View className="mb-2">
-            <Text className="text-gray-500 mb-1">Fitness Goal</Text>
-            {isEditing ? (
-              <TextInput
-                className="border border-gray-300 rounded-lg p-2 text-gray-800"
-                value={profileData.goal}
-                multiline
-                numberOfLines={3}
-                onChangeText={(text) =>
-                  setProfileData({ ...profileData, goal: text })
-                }
-              />
-            ) : (
-              <Text className="text-gray-800 font-medium">
-                {profileData.goal}
-              </Text>
-            )}
-          </View>
+          {userRole !== "trainer" && (
+            <View className="mb-2">
+              <Text className="text-gray-500 mb-1">Fitness Goal</Text>
+              {isEditing ? (
+                <TextInput
+                  className="border border-gray-300 rounded-lg p-2 text-gray-800"
+                  value={profileData.goal}
+                  multiline
+                  numberOfLines={3}
+                  onChangeText={(text) =>
+                    setProfileData({ ...profileData, goal: text })
+                  }
+                />
+              ) : (
+                <Text className="text-gray-800 font-medium">
+                  {profileData.goal}
+                </Text>
+              )}
+            </View>
+          )}
         </View>
 
-        {/* Notification Settings */}
-        <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
-          <View className="flex-row justify-between items-center mb-4">
-            <View className="flex-row items-center">
-              <Bell size={20} color="#be185d" />
-              <Text className="text-lg font-semibold text-pink-800 ml-2">
-                Notifications
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={requestNotificationPermission}
-              className={`w-12 h-6 rounded-full ${profileData.notificationsEnabled ? "bg-pink-600" : "bg-gray-300"} justify-center`}
-            >
-              <View
-                className={`w-5 h-5 rounded-full bg-white shadow-sm ${profileData.notificationsEnabled ? "ml-7" : "ml-1"}`}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {profileData.notificationsEnabled && (
-            <View>
-              <Text className="text-gray-500 mb-2">Daily Reminder Time</Text>
-              <TouchableOpacity
-                className="border border-gray-300 rounded-lg p-2 flex-row items-center justify-between"
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Text className="text-gray-800">
-                  {profileData.notificationTime}
+        {/* Notification Settings - Only shown for clients */}
+        {userRole !== "trainer" && (
+          <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
+            <View className="flex-row justify-between items-center mb-4">
+              <View className="flex-row items-center">
+                <Bell size={20} color="#be185d" />
+                <Text className="text-lg font-semibold text-pink-800 ml-2">
+                  Notifications
                 </Text>
-                <Clock size={16} color="#9ca3af" />
+              </View>
+              <TouchableOpacity
+                onPress={requestNotificationPermission}
+                className={`w-12 h-6 rounded-full ${profileData.notificationsEnabled ? "bg-pink-600" : "bg-gray-300"} justify-center`}
+              >
+                <View
+                  className={`w-5 h-5 rounded-full bg-white shadow-sm ${profileData.notificationsEnabled ? "ml-7" : "ml-1"}`}
+                />
               </TouchableOpacity>
+            </View>
 
-              {showTimePicker && (
-                <>
-                  {Platform.OS === "ios" ? (
-                    <View className="bg-white border border-gray-200 rounded-lg mt-2 p-2">
+            {profileData.notificationsEnabled && (
+              <View>
+                <Text className="text-gray-500 mb-2">Daily Reminder Time</Text>
+                <TouchableOpacity
+                  className="border border-gray-300 rounded-lg p-2 flex-row items-center justify-between"
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text className="text-gray-800">
+                    {profileData.notificationTime}
+                  </Text>
+                  <Clock size={16} color="#9ca3af" />
+                </TouchableOpacity>
+
+                {showTimePicker && (
+                  <>
+                    {Platform.OS === "ios" ? (
+                      <View className="bg-white border border-gray-200 rounded-lg mt-2 p-2">
+                        <DateTimePicker
+                          value={(() => {
+                            const [hours, minutes] =
+                              profileData.notificationTime
+                                .split(":")
+                                .map(Number);
+                            const date = new Date();
+                            date.setHours(hours);
+                            date.setMinutes(minutes);
+                            return date;
+                          })()}
+                          mode="time"
+                          display="spinner"
+                          onChange={(event, selectedDate) => {
+                            setShowTimePicker(Platform.OS === "ios");
+                            if (selectedDate) {
+                              const hours = selectedDate
+                                .getHours()
+                                .toString()
+                                .padStart(2, "0");
+                              const minutes = selectedDate
+                                .getMinutes()
+                                .toString()
+                                .padStart(2, "0");
+                              setProfileData({
+                                ...profileData,
+                                notificationTime: `${hours}:${minutes}`,
+                              });
+                            }
+                          }}
+                        />
+                        <View className="flex-row justify-end mt-2">
+                          <TouchableOpacity
+                            className="bg-pink-600 py-1 px-3 rounded-lg"
+                            onPress={() => setShowTimePicker(false)}
+                          >
+                            <Text className="text-white font-medium">Done</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    ) : (
                       <DateTimePicker
                         value={(() => {
                           const [hours, minutes] = profileData.notificationTime
@@ -443,10 +491,10 @@ const ProfileScreen = () => {
                           return date;
                         })()}
                         mode="time"
-                        display="spinner"
+                        display="default"
                         onChange={(event, selectedDate) => {
-                          setShowTimePicker(Platform.OS === "ios");
-                          if (selectedDate) {
+                          setShowTimePicker(false);
+                          if (selectedDate && event.type !== "dismissed") {
                             const hours = selectedDate
                               .getHours()
                               .toString()
@@ -462,56 +510,17 @@ const ProfileScreen = () => {
                           }
                         }}
                       />
-                      <View className="flex-row justify-end mt-2">
-                        <TouchableOpacity
-                          className="bg-pink-600 py-1 px-3 rounded-lg"
-                          onPress={() => setShowTimePicker(false)}
-                        >
-                          <Text className="text-white font-medium">Done</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-                  ) : (
-                    <DateTimePicker
-                      value={(() => {
-                        const [hours, minutes] = profileData.notificationTime
-                          .split(":")
-                          .map(Number);
-                        const date = new Date();
-                        date.setHours(hours);
-                        date.setMinutes(minutes);
-                        return date;
-                      })()}
-                      mode="time"
-                      display="default"
-                      onChange={(event, selectedDate) => {
-                        setShowTimePicker(false);
-                        if (selectedDate && event.type !== "dismissed") {
-                          const hours = selectedDate
-                            .getHours()
-                            .toString()
-                            .padStart(2, "0");
-                          const minutes = selectedDate
-                            .getMinutes()
-                            .toString()
-                            .padStart(2, "0");
-                          setProfileData({
-                            ...profileData,
-                            notificationTime: `${hours}:${minutes}`,
-                          });
-                        }
-                      }}
-                    />
-                  )}
-                </>
-              )}
+                    )}
+                  </>
+                )}
 
-              <Text className="text-xs text-gray-500 mt-1">
-                You'll receive daily reminders for your workouts and meals
-              </Text>
-            </View>
-          )}
-        </View>
+                <Text className="text-xs text-gray-500 mt-1">
+                  You'll receive daily reminders for your workouts and meals
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
 
         {/* Security Settings */}
         <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
