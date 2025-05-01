@@ -1,5 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { SafeAreaView, View, Text, TouchableOpacity } from "react-native";
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { useAuth } from "./components/AuthContext";
 import TrainerDashboard from "./components/TrainerDashboard";
@@ -61,7 +67,9 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
-        <TrainerDashboard />
+        <ScrollView className="flex-1">
+          <TrainerDashboard />
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -69,7 +77,7 @@ export default function DashboardScreen() {
   // For client role, show the mock bottom tab navigator instead of the real one
   // This avoids navigation container issues
   return (
-    <SafeAreaView className="flex-1 bg-pink-50">
+    <ScrollView className="flex-1 bg-pink-50">
       <View className="flex-row justify-between items-center p-4 bg-pink-800">
         <Text className="text-xl font-bold text-white">Client Dashboard</Text>
         <TouchableOpacity
@@ -81,8 +89,14 @@ export default function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      <ClientHome />
-    </SafeAreaView>
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={true}
+      >
+        <ClientHome />
+      </ScrollView>
+    </ScrollView>
   );
 }
 
