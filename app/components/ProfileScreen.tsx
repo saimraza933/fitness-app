@@ -457,7 +457,7 @@ const ProfileScreen = () => {
               <View>
                 <Text className="text-gray-500 mb-2">Daily Reminder Time</Text>
                 <TouchableOpacity
-                  className="border border-gray-300 rounded-lg p-2 flex-row items-center justify-between"
+                  className="border border-gray-300 rounded-lg p-3 flex-row items-center justify-between"
                   onPress={() => setShowTimePicker(true)}
                 >
                   <Text className="text-gray-800">
@@ -467,82 +467,116 @@ const ProfileScreen = () => {
                 </TouchableOpacity>
 
                 {showTimePicker && (
-                  <>
-                    {Platform.OS === "ios" ? (
-                      <View className="bg-white border border-gray-200 rounded-lg mt-2 p-2">
-                        <DateTimePicker
-                          value={(() => {
-                            const [hours, minutes] =
-                              profileData.notificationTime
-                                .split(":")
-                                .map(Number);
-                            const date = new Date();
-                            date.setHours(hours);
-                            date.setMinutes(minutes);
-                            return date;
-                          })()}
-                          mode="time"
-                          display="spinner"
-                          onChange={(event, selectedDate) => {
-                            setShowTimePicker(Platform.OS === "ios");
-                            if (selectedDate) {
-                              const hours = selectedDate
-                                .getHours()
-                                .toString()
-                                .padStart(2, "0");
-                              const minutes = selectedDate
-                                .getMinutes()
-                                .toString()
-                                .padStart(2, "0");
-                              setProfileData({
-                                ...profileData,
-                                notificationTime: `${hours}:${minutes}`,
-                              });
-                            }
-                          }}
-                        />
-                        <View className="flex-row justify-end mt-2">
-                          <TouchableOpacity
-                            className="bg-pink-600 py-1 px-3 rounded-lg"
-                            onPress={() => setShowTimePicker(false)}
-                          >
-                            <Text className="text-white font-medium">Done</Text>
-                          </TouchableOpacity>
-                        </View>
+                  <Modal
+                    transparent={true}
+                    animationType="fade"
+                    visible={showTimePicker}
+                    onRequestClose={() => setShowTimePicker(false)}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: "rgba(0,0,0,0.5)",
+                      }}
+                      activeOpacity={1}
+                      onPress={() => setShowTimePicker(false)}
+                    >
+                      <View
+                        className="bg-white rounded-xl p-4 w-5/6 max-w-sm"
+                        style={{ elevation: 5 }}
+                      >
+                        <Text className="text-lg font-bold text-pink-800 mb-4 text-center">
+                          Select Time
+                        </Text>
+
+                        {Platform.OS === "ios" ? (
+                          <View>
+                            <DateTimePicker
+                              testID="dateTimePicker"
+                              value={(() => {
+                                const [hours, minutes] =
+                                  profileData.notificationTime
+                                    .split(":")
+                                    .map(Number);
+                                const date = new Date();
+                                date.setHours(hours);
+                                date.setMinutes(minutes);
+                                return date;
+                              })()}
+                              mode="time"
+                              display="spinner"
+                              onChange={(event, selectedDate) => {
+                                if (selectedDate) {
+                                  const hours = selectedDate
+                                    .getHours()
+                                    .toString()
+                                    .padStart(2, "0");
+                                  const minutes = selectedDate
+                                    .getMinutes()
+                                    .toString()
+                                    .padStart(2, "0");
+                                  setProfileData({
+                                    ...profileData,
+                                    notificationTime: `${hours}:${minutes}`,
+                                  });
+                                }
+                              }}
+                            />
+                            <View className="flex-row justify-end mt-4">
+                              <TouchableOpacity
+                                className="bg-pink-600 py-2 px-4 rounded-lg"
+                                onPress={() => setShowTimePicker(false)}
+                              >
+                                <Text className="text-white font-medium">
+                                  Done
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+                        ) : (
+                          <View>
+                            <DateTimePicker
+                              testID="dateTimePicker"
+                              value={(() => {
+                                const [hours, minutes] =
+                                  profileData.notificationTime
+                                    .split(":")
+                                    .map(Number);
+                                const date = new Date();
+                                date.setHours(hours);
+                                date.setMinutes(minutes);
+                                return date;
+                              })()}
+                              mode="time"
+                              is24Hour={false}
+                              display="clock"
+                              onChange={(event, selectedDate) => {
+                                if (selectedDate && event.type === "set") {
+                                  const hours = selectedDate
+                                    .getHours()
+                                    .toString()
+                                    .padStart(2, "0");
+                                  const minutes = selectedDate
+                                    .getMinutes()
+                                    .toString()
+                                    .padStart(2, "0");
+                                  setProfileData({
+                                    ...profileData,
+                                    notificationTime: `${hours}:${minutes}`,
+                                  });
+                                  setShowTimePicker(false);
+                                } else if (event.type === "dismissed") {
+                                  setShowTimePicker(false);
+                                }
+                              }}
+                            />
+                          </View>
+                        )}
                       </View>
-                    ) : (
-                      <DateTimePicker
-                        value={(() => {
-                          const [hours, minutes] = profileData.notificationTime
-                            .split(":")
-                            .map(Number);
-                          const date = new Date();
-                          date.setHours(hours);
-                          date.setMinutes(minutes);
-                          return date;
-                        })()}
-                        mode="time"
-                        display="default"
-                        onChange={(event, selectedDate) => {
-                          setShowTimePicker(false);
-                          if (selectedDate && event.type !== "dismissed") {
-                            const hours = selectedDate
-                              .getHours()
-                              .toString()
-                              .padStart(2, "0");
-                            const minutes = selectedDate
-                              .getMinutes()
-                              .toString()
-                              .padStart(2, "0");
-                            setProfileData({
-                              ...profileData,
-                              notificationTime: `${hours}:${minutes}`,
-                            });
-                          }
-                        }}
-                      />
-                    )}
-                  </>
+                    </TouchableOpacity>
+                  </Modal>
                 )}
 
                 <Text className="text-xs text-gray-500 mt-1">
