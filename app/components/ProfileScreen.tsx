@@ -11,6 +11,7 @@ import {
   Modal,
   Platform,
 } from "react-native";
+import Popover from "react-native-popover-view";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useAuth } from "./AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -48,6 +49,8 @@ const ProfileScreen = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
+  const [showImageOptions, setShowImageOptions] = useState(false);
+  const [imageMenuAnchor, setImageMenuAnchor] = useState(null);
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -262,20 +265,48 @@ const ProfileScreen = () => {
             )}
           </View>
           <View className="flex-row absolute bottom-0 right-0">
-            {profileData.profilePicture && (
-              <TouchableOpacity
-                className="bg-red-500 p-2 rounded-full mr-2"
-                onPress={removeProfilePicture}
-              >
-                <Trash2 size={16} color="white" />
-              </TouchableOpacity>
-            )}
             <TouchableOpacity
               className="bg-pink-600 p-2 rounded-full"
-              onPress={pickImage}
+              onPress={(event) => {
+                setImageMenuAnchor(event.currentTarget);
+                setShowImageOptions(true);
+              }}
             >
               <Camera size={16} color="white" />
             </TouchableOpacity>
+
+            <Popover
+              isVisible={showImageOptions}
+              onRequestClose={() => setShowImageOptions(false)}
+              from={imageMenuAnchor}
+              backgroundStyle={{ backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+            >
+              <View className="bg-white rounded-lg p-2 w-40">
+                <TouchableOpacity
+                  className="flex-row items-center p-3"
+                  onPress={() => {
+                    setShowImageOptions(false);
+                    pickImage();
+                  }}
+                >
+                  <Camera size={18} color="#be185d" />
+                  <Text className="ml-2 text-gray-800">Upload Image</Text>
+                </TouchableOpacity>
+
+                {profileData.profilePicture && (
+                  <TouchableOpacity
+                    className="flex-row items-center p-3"
+                    onPress={() => {
+                      setShowImageOptions(false);
+                      removeProfilePicture();
+                    }}
+                  >
+                    <Trash2 size={18} color="#dc2626" />
+                    <Text className="ml-2 text-gray-800">Remove Image</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </Popover>
           </View>
         </View>
         <Text className="text-2xl font-bold text-white mt-3">

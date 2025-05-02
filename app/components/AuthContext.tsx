@@ -8,6 +8,7 @@ interface AuthContextType {
   isLoggedIn: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  resetPassword: (email: string) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,18 +16,17 @@ const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
   login: async () => false,
   logout: async () => {},
+  resetPassword: async () => false,
 });
 
 export const useAuth = () => useContext(AuthContext);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  // Mock user database
-  const users = [
+  // Mock user database - will be supplemented with users from AsyncStorage
+  const [users, setUsers] = useState([
     {
       email: "client@example.com",
       password: "client123",
@@ -37,12 +37,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       password: "trainer123",
       role: "trainer" as const,
     },
-  ];
+  ]);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkLoginStatus = async () => {
+    // Check if user is already logged in and load any saved users
+    const initializeAuth = async () => {
       try {
+        // Check login status
         const storedRole = await AsyncStorage.getItem("user_role");
         const loggedIn = await AsyncStorage.getItem("is_logged_in");
 
@@ -58,12 +59,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           setUserRole(storedRole as UserRole);
           setIsLoggedIn(true);
         }
+
+        // Load any saved users
+        const savedUsers = await AsyncStorage.getItem("mock_users");
+        if (savedUsers) {
+          const parsedUsers = JSON.parse(savedUsers);
+          // Merge default users with saved users, avoiding duplicates
+          const defaultEmails = users.map((u) => u.email.toLowerCase());
+          const newUsers = [
+            ...users,
+            ...parsedUsers.filter(
+              (u) => !defaultEmails.includes(u.email.toLowerCase()),
+            ),
+          ];
+          setUsers(newUsers);
+        }
       } catch (error) {
-        console.error("Error checking login status:", error);
+        console.error("Error initializing auth:", error);
       }
     };
 
-    checkLoginStatus();
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -117,8 +133,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const resetPassword = async (email: string): Promise<boolean> => {
+    console.log("Password reset attempt for email:", email);
+
+    // Check if the email exists in our mock database
+    const user = users.find(
+      (u) => u.email.toLowerCase() === email.toLowerCase(),
+    );
+
+    if (user) {
+      // In a real app, this would send an email with a reset link
+      console.log("Password reset email sent to:", email);
+      return true;
+    }
+
+    console.log("Email not found for password reset:", email);
+    return false;
+  };
+
   return (
-    <AuthContext.Provider value={{ userRole, isLoggedIn, login, logout }}>
+    <AuthContext.Provider
+      value={{ userRole, isLoggedIn, login, logout, resetPassword }}
+    >
       {children}
     </AuthContext.Provider>
   );

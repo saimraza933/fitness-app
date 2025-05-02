@@ -51,8 +51,9 @@ export default function LoginScreen() {
   };
 
   const handleSignUp = () => {
-    // In a real app, you would navigate to a sign-up screen
-    console.log("Navigate to sign up");
+    console.log("Navigating to signup screen");
+    // Use replace instead of push to avoid navigation stack issues
+    router.replace("/signup");
   };
 
   return (
