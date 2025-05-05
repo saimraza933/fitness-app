@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { profileApi } from "../../services/api";
 
 interface ProfileData {
   name: string;
@@ -63,18 +64,40 @@ export const loadUserProfile = createAsyncThunk(
         return rejectWithValue("User not logged in");
       }
 
-      const storageKey =
-        userRole === "trainer" ? "trainer_profile" : "user_profile";
-      const savedProfile = await AsyncStorage.getItem(storageKey);
+      try {
+        // Try to get profile from API
+        const profileData = await profileApi.getProfile();
 
-      if (savedProfile) {
-        return JSON.parse(savedProfile) as ProfileData;
+        // Transform API response to match our ProfileData structure
+        const formattedProfile: ProfileData = {
+          name: profileData.name,
+          age: profileData.age,
+          weight: profileData.weight,
+          height: profileData.height,
+          goal: profileData.goal || "",
+          notificationsEnabled: profileData.notifications_enabled,
+          notificationTime: profileData.notification_time,
+          profilePicture: profileData.profile_picture_url,
+        };
+
+        return formattedProfile;
+      } catch (apiError) {
+        console.log("API error, falling back to local storage", apiError);
+
+        // Fall back to local storage if API fails
+        const storageKey =
+          userRole === "trainer" ? "trainer_profile" : "user_profile";
+        const savedProfile = await AsyncStorage.getItem(storageKey);
+
+        if (savedProfile) {
+          return JSON.parse(savedProfile) as ProfileData;
+        }
+
+        // Return default profile if none exists
+        return userRole === "trainer"
+          ? defaultProfiles.trainer
+          : defaultProfiles.client;
       }
-
-      // Return default profile if none exists
-      return userRole === "trainer"
-        ? defaultProfiles.trainer
-        : defaultProfiles.client;
     } catch (error) {
       console.error("Error loading profile:", error);
       return rejectWithValue("Failed to load profile");
@@ -94,6 +117,26 @@ export const saveUserProfile = createAsyncThunk(
         return rejectWithValue("User not logged in");
       }
 
+      try {
+        // Format data for API
+        const apiProfileData = {
+          name: profileData.name,
+          age: profileData.age,
+          weight: profileData.weight,
+          height: profileData.height,
+          goal: profileData.goal,
+          notification_time: profileData.notificationTime,
+          notifications_enabled: profileData.notificationsEnabled,
+          profile_picture: profileData.profilePicture,
+        };
+
+        // Update profile via API
+        await profileApi.updateProfile(apiProfileData);
+      } catch (apiError) {
+        console.log("API error, falling back to local storage", apiError);
+      }
+
+      // Always save to local storage as backup
       const storageKey =
         userRole === "trainer" ? "trainer_profile" : "user_profile";
       await AsyncStorage.setItem(storageKey, JSON.stringify(profileData));
@@ -117,15 +160,40 @@ export const updateProfilePicture = createAsyncThunk(
         throw new Error("Profile not loaded");
       }
 
-      const updatedProfile = {
-        ...currentProfile,
-        profilePicture: imageUri,
-      };
+      try {
+        // Update profile picture via API
+        const updatedData = await profileApi.updateProfilePicture(imageUri);
 
-      // Save the updated profile
-      await dispatch(saveUserProfile(updatedProfile));
+        // Get the profile picture URL from the response
+        const profilePictureUrl = updatedData.profile_picture_url || imageUri;
 
-      return imageUri;
+        const updatedProfile = {
+          ...currentProfile,
+          profilePicture: profilePictureUrl,
+        };
+
+        // Update local storage with the new profile
+        // @ts-ignore - We know the state has auth
+        const userRole = getState().auth.userRole;
+        const storageKey =
+          userRole === "trainer" ? "trainer_profile" : "user_profile";
+        await AsyncStorage.setItem(storageKey, JSON.stringify(updatedProfile));
+
+        return profilePictureUrl;
+      } catch (apiError) {
+        console.log("API error when updating profile picture", apiError);
+
+        // Fall back to local update if API fails
+        const updatedProfile = {
+          ...currentProfile,
+          profilePicture: imageUri,
+        };
+
+        // Save the updated profile to local storage
+        await dispatch(saveUserProfile(updatedProfile));
+
+        return imageUri;
+      }
     } catch (error) {
       console.error("Error updating profile picture:", error);
       throw error;
@@ -145,6 +213,15 @@ export const deleteUserProfile = createAsyncThunk(
         return rejectWithValue("User not logged in");
       }
 
+      try {
+        // Delete profile via API
+        await profileApi.deleteProfile();
+      } catch (apiError) {
+        console.log("API error when deleting profile", apiError);
+        // Continue with local deletion even if API fails
+      }
+
+      // Always remove from local storage
       const storageKey =
         userRole === "trainer" ? "trainer_profile" : "user_profile";
       await AsyncStorage.removeItem(storageKey);

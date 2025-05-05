@@ -22,6 +22,7 @@ import {
   deleteUserProfile,
 } from "../store/slices/userSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { profileApi } from "../services/api";
 import {
   Camera,
   Edit2,
@@ -92,6 +93,27 @@ const ProfileScreen = () => {
 
   const saveProfileData = async () => {
     try {
+      // Format data for API
+      const apiProfileData = {
+        name: profileData.name,
+        age: profileData.age,
+        weight: profileData.weight,
+        height: profileData.height,
+        goal: profileData.goal,
+        notification_time: profileData.notificationTime,
+        notifications_enabled: profileData.notificationsEnabled,
+        // Don't include profile_picture here as we're not changing it
+      };
+
+      try {
+        // Update profile via API directly
+        await profileApi.updateProfile(apiProfileData);
+      } catch (apiError) {
+        console.log("API error when saving profile", apiError);
+        // Continue with local update even if API fails
+      }
+
+      // Update Redux state
       await dispatch(saveUserProfile(profileData));
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully");
@@ -136,14 +158,27 @@ const ProfileScreen = () => {
         // Update profile data with the selected image URI
         const imageUri = result.assets[0].uri;
 
-        // Update local state
-        setProfileData({
-          ...profileData,
-          profilePicture: imageUri,
-        });
+        try {
+          // Update Redux state - this will call the API with form data
+          const updatedImageUrl = await dispatch(
+            updateProfilePicture(imageUri),
+          ).unwrap();
 
-        // Update Redux state
-        await dispatch(updateProfilePicture(imageUri));
+          // Update local state with the returned URL or the local URI if no URL returned
+          setProfileData({
+            ...profileData,
+            profilePicture: updatedImageUrl || imageUri,
+          });
+        } catch (error) {
+          console.error("Error updating profile picture:", error);
+          Alert.alert("Error", "Failed to upload image to server");
+
+          // Still update local state with the local URI
+          setProfileData({
+            ...profileData,
+            profilePicture: imageUri,
+          });
+        }
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -164,9 +199,23 @@ const ProfileScreen = () => {
       // Update local state
       setProfileData(updatedProfile);
 
-      // Update Redux state
-      await dispatch(saveUserProfile(updatedProfile));
-      Alert.alert("Success", "Profile picture removed");
+      try {
+        // Call the API to remove profile picture
+        await profileApi.removeProfilePicture();
+
+        // Update Redux state
+        await dispatch(saveUserProfile(updatedProfile));
+        Alert.alert("Success", "Profile picture removed");
+      } catch (apiError) {
+        console.error("API error removing profile picture:", apiError);
+
+        // Still update Redux state locally
+        await dispatch(saveUserProfile(updatedProfile));
+        Alert.alert(
+          "Warning",
+          "Profile picture removed locally but server update failed",
+        );
+      }
     } catch (error) {
       console.error("Error removing profile picture:", error);
       Alert.alert("Error", "Failed to remove profile picture");
