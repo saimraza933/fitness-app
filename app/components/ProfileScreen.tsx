@@ -13,7 +13,14 @@ import {
 } from "react-native";
 import Popover from "react-native-popover-view";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useAuth } from "./AuthContext";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
+import { logout, changePassword } from "../store/slices/authSlice";
+import {
+  loadUserProfile,
+  saveUserProfile,
+  updateProfilePicture,
+  deleteUserProfile,
+} from "../store/slices/userSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Camera,
@@ -42,7 +49,9 @@ interface ProfileData {
 }
 
 const ProfileScreen = () => {
-  const { userRole, logout } = useAuth();
+  const dispatch = useAppDispatch();
+  const { userRole } = useAppSelector((state) => state.auth);
+  const { profile, isLoading } = useAppSelector((state) => state.user);
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -57,12 +66,13 @@ const ProfileScreen = () => {
   const [passwordError, setPasswordError] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
+  // Local state to track profile data while editing
   const [profileData, setProfileData] = useState<ProfileData>({
-    name: userRole === "trainer" ? "John Smith" : "Sarah Johnson",
-    age: userRole === "trainer" ? "35" : "28",
-    weight: userRole === "trainer" ? "180" : "145",
-    height: userRole === "trainer" ? "6'1\"" : "5'6\"",
-    goal: "Lose 10 pounds and improve overall fitness",
+    name: "",
+    age: "",
+    weight: "",
+    height: "",
+    goal: "",
     notificationsEnabled: true,
     notificationTime: "08:00",
     profilePicture: null,
@@ -70,27 +80,19 @@ const ProfileScreen = () => {
   });
 
   useEffect(() => {
-    loadProfileData();
-  }, []);
+    dispatch(loadUserProfile());
+  }, [dispatch]);
 
-  const loadProfileData = async () => {
-    try {
-      const storageKey =
-        userRole === "trainer" ? "trainer_profile" : "user_profile";
-      const savedProfile = await AsyncStorage.getItem(storageKey);
-      if (savedProfile) {
-        setProfileData(JSON.parse(savedProfile));
-      }
-    } catch (error) {
-      console.error("Error loading profile data:", error);
+  // Update local state when profile data changes
+  useEffect(() => {
+    if (profile) {
+      setProfileData(profile);
     }
-  };
+  }, [profile]);
 
   const saveProfileData = async () => {
     try {
-      const storageKey =
-        userRole === "trainer" ? "trainer_profile" : "user_profile";
-      await AsyncStorage.setItem(storageKey, JSON.stringify(profileData));
+      await dispatch(saveUserProfile(profileData));
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully");
     } catch (error) {
@@ -132,13 +134,16 @@ const ProfileScreen = () => {
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         // Update profile data with the selected image URI
+        const imageUri = result.assets[0].uri;
+
+        // Update local state
         setProfileData({
           ...profileData,
-          profilePicture: result.assets[0].uri,
+          profilePicture: imageUri,
         });
 
-        // Save the updated profile data
-        await saveProfileData();
+        // Update Redux state
+        await dispatch(updateProfilePicture(imageUri));
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -151,13 +156,16 @@ const ProfileScreen = () => {
   const removeProfilePicture = async () => {
     try {
       // Update profile data to remove the profile picture
-      setProfileData({
+      const updatedProfile = {
         ...profileData,
         profilePicture: null,
-      });
+      };
 
-      // Save the updated profile data
-      await saveProfileData();
+      // Update local state
+      setProfileData(updatedProfile);
+
+      // Update Redux state
+      await dispatch(saveUserProfile(updatedProfile));
       Alert.alert("Success", "Profile picture removed");
     } catch (error) {
       console.error("Error removing profile picture:", error);
@@ -182,14 +190,8 @@ const ProfileScreen = () => {
     );
   };
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     setPasswordError("");
-
-    // Validate old password
-    if (oldPassword !== profileData.password) {
-      setPasswordError("Current password is incorrect");
-      return;
-    }
 
     // Validate new password
     if (newPassword.length < 6) {
@@ -203,20 +205,33 @@ const ProfileScreen = () => {
       return;
     }
 
-    // Update password
-    setProfileData({
-      ...profileData,
-      password: newPassword,
-    });
+    try {
+      // Call the API to change password
+      const resultAction = await dispatch(
+        changePassword({ oldPassword, newPassword }),
+      );
 
-    // Reset fields and close modal
-    setOldPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowPasswordModal(false);
+      if (changePassword.fulfilled.match(resultAction)) {
+        // Reset fields and close modal
+        setOldPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+        setShowPasswordModal(false);
 
-    // Show success message
-    Alert.alert("Success", "Password changed successfully");
+        // Show success message
+        Alert.alert("Success", "Password changed successfully");
+      } else {
+        // If change password failed, get the error message
+        if (resultAction.payload) {
+          setPasswordError(resultAction.payload as string);
+        } else {
+          setPasswordError("Failed to change password. Please try again.");
+        }
+      }
+    } catch (error: any) {
+      console.error("Error changing password:", error);
+      setPasswordError(error.message || "An error occurred. Please try again.");
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -226,18 +241,24 @@ const ProfileScreen = () => {
     }
 
     try {
-      // Clear all user data
-      await AsyncStorage.clear();
-      await logout();
+      // Delete user profile
+      const resultAction = await dispatch(deleteUserProfile());
 
-      // Close modal
-      setShowDeleteAccountModal(false);
-      setDeleteConfirmText("");
+      if (deleteUserProfile.fulfilled.match(resultAction)) {
+        // Logout after successful profile deletion
+        await dispatch(logout());
 
-      // Navigate to login screen
-      setTimeout(() => {
-        router.replace("/login");
-      }, 100);
+        // Close modal
+        setShowDeleteAccountModal(false);
+        setDeleteConfirmText("");
+
+        // Navigate to login screen
+        setTimeout(() => {
+          router.replace("/login");
+        }, 100);
+      } else {
+        Alert.alert("Error", "Failed to delete account. Please try again.");
+      }
     } catch (error) {
       console.error("Error deleting account:", error);
       Alert.alert("Error", "Failed to delete account");
@@ -613,7 +634,7 @@ const ProfileScreen = () => {
           <TouchableOpacity
             className="flex-row items-center py-3"
             onPress={async () => {
-              await logout();
+              await dispatch(logout());
               router.replace("/login");
             }}
           >

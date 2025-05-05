@@ -10,7 +10,10 @@ import { Platform, View } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import OnboardingScreen from "./components/OnboardingScreen";
 import CustomSplashScreen from "./components/SplashScreen";
-import { AuthProvider } from "./components/AuthContext";
+import { Provider } from "react-redux";
+import { store } from "./store";
+import { initializeAuth, loadSavedUsers } from "./store/slices/authSlice";
+import { useAppDispatch, useAppSelector } from "./hooks/redux";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -97,7 +100,45 @@ export default function RootLayout() {
 
   // Normal app flow
   return (
-    <AuthProvider>
+    <Provider store={store}>
+      <AppContent
+        appIsReady={appIsReady}
+        showSplash={showSplash}
+        handleSplashFinish={handleSplashFinish}
+      />
+    </Provider>
+  );
+}
+
+function AppContent({
+  appIsReady,
+  showSplash,
+  handleSplashFinish,
+}: {
+  appIsReady: boolean;
+  showSplash: boolean;
+  handleSplashFinish: () => void;
+}) {
+  const dispatch = useAppDispatch();
+  const { isLoggedIn } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    // Initialize auth state and load saved users
+    dispatch(loadSavedUsers());
+    dispatch(initializeAuth());
+  }, [dispatch]);
+
+  if (!appIsReady) {
+    return null;
+  }
+
+  // Show custom splash screen first
+  if (showSplash) {
+    return <CustomSplashScreen onFinish={handleSplashFinish} />;
+  }
+
+  return (
+    <>
       <Stack
         screenOptions={{
           headerShown: false,
@@ -112,6 +153,6 @@ export default function RootLayout() {
         <Stack.Screen name="historical-data" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
-    </AuthProvider>
+    </>
   );
 }

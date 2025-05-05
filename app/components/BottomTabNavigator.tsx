@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { useAuth } from "./AuthContext";
+import { useAppSelector } from "../hooks/redux";
 import ClientHome from "./ClientHome";
 import ProgressSection from "./ProgressSection";
 import { Home, User, Calendar, Users } from "lucide-react-native";
@@ -47,8 +47,8 @@ const TabItem = ({
 };
 
 const BottomTabNavigator = () => {
-  // Get auth context safely with a default value
-  const { userRole } = useAuth();
+  // Get auth state from Redux
+  const { userRole } = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("Home");
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedProgressClient, setSelectedProgressClient] = useState(null);

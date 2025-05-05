@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { View, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "./components/AuthContext";
+import { useAppSelector } from "./hooks/redux";
 
 export default function HomeScreen() {
-  const { isLoggedIn } = useAuth();
+  const { isLoggedIn } = useAppSelector((state) => state.auth);
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
 

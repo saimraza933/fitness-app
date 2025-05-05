@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { SafeAreaView, View, Text } from "react-native";
 import { useRouter } from "expo-router";
-import { useAuth } from "./components/AuthContext";
+import { useAppSelector } from "./hooks/redux";
 import BottomTabNavigator from "./components/BottomTabNavigator";
 
 export default function DashboardScreen() {
-  const { isLoggedIn, userRole } = useAuth();
+  const { isLoggedIn, userRole } = useAppSelector((state) => state.auth);
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [forceRender, setForceRender] = useState(0);

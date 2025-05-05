@@ -12,7 +12,8 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Eye, EyeOff, ArrowRight, Dumbbell, X } from "lucide-react-native";
-import { useAuth } from "./AuthContext";
+import { useAppDispatch } from "../hooks/redux";
+import { resetPassword } from "../store/slices/authSlice";
 
 interface LoginFormProps {
   onLogin: (email: string, password: string) => Promise<boolean>;
@@ -20,7 +21,7 @@ interface LoginFormProps {
 }
 
 const LoginForm = ({ onLogin, onSignUp }: LoginFormProps) => {
-  const { resetPassword } = useAuth();
+  const dispatch = useAppDispatch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -45,8 +46,8 @@ const LoginForm = ({ onLogin, onSignUp }: LoginFormProps) => {
       if (!success) {
         setErrorMessage("Invalid email or password");
       }
-    } catch (error) {
-      setErrorMessage("An error occurred during login");
+    } catch (error: any) {
+      setErrorMessage(error.message || "An error occurred during login");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -229,8 +230,10 @@ const LoginForm = ({ onLogin, onSignUp }: LoginFormProps) => {
                   setResetMessage({ type: "", text: "" });
 
                   try {
-                    const success = await resetPassword(resetEmail);
-                    if (success) {
+                    const resultAction = await dispatch(
+                      resetPassword(resetEmail),
+                    );
+                    if (resetPassword.fulfilled.match(resultAction)) {
                       setResetMessage({
                         type: "success",
                         text: "Password reset instructions have been sent to your email",

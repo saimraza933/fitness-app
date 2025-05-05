@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { SafeAreaView, Alert, Text } from "react-native";
 import SignupForm from "./components/SignupForm";
 import { useRouter } from "expo-router";
-import { useAuth } from "./components/AuthContext";
+import { useAppDispatch, useAppSelector } from "./hooks/redux";
+import { signup } from "./store/slices/authSlice";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SignupScreen() {
-  const { login, isLoggedIn } = useAuth();
+  const dispatch = useAppDispatch();
+  const { isLoggedIn, error } = useAppSelector((state) => state.auth);
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
 
@@ -26,53 +28,41 @@ export default function SignupScreen() {
     }
   }, [isLoggedIn, isMounted, router]);
 
-  const handleSignup = async (
-    email: string,
-    password: string,
-    role: "client" | "trainer",
-  ) => {
+  const handleSignup = async (userData: {
+    email: string;
+    password: string;
+    role: "client" | "trainer";
+    name: string;
+    age: string;
+    height: string;
+    weight: string;
+    goal: string;
+  }) => {
     try {
-      // In a real app, you would make an API call to create the user
-      // For this demo, we'll simulate adding the user to our mock database
-      // and then log them in
+      // Use the signup action from Redux
+      const resultAction = await dispatch(signup(userData));
 
-      // Get existing users from AuthContext
-      const usersString = await AsyncStorage.getItem("mock_users");
-      let users = usersString ? JSON.parse(usersString) : [];
-
-      // Check if email already exists
-      const emailExists = users.some(
-        (user) => user.email.toLowerCase() === email.toLowerCase(),
-      );
-      if (emailExists) {
-        Alert.alert("Error", "Email already in use");
-        return false;
-      }
-
-      // Add new user
-      const newUser = {
-        email,
-        password,
-        role,
-      };
-
-      users.push(newUser);
-      await AsyncStorage.setItem("mock_users", JSON.stringify(users));
-
-      // Log in the user
-      const success = await login(email, password);
-
-      if (success) {
+      if (signup.fulfilled.match(resultAction)) {
         Alert.alert("Success", "Account created successfully!");
         setTimeout(() => {
           router.replace("/dashboard");
         }, 800);
+        return true;
+      } else {
+        // If signup failed, get the error message
+        if (resultAction.payload) {
+          Alert.alert("Signup Failed", resultAction.payload as string);
+        } else {
+          Alert.alert("Error", "Failed to create account. Please try again.");
+        }
+        return false;
       }
-
-      return success;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Signup error:", error);
-      Alert.alert("Error", "Failed to create account. Please try again.");
+      Alert.alert(
+        "Error",
+        error.message || "Failed to create account. Please try again.",
+      );
       return false;
     }
   };

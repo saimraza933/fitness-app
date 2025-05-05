@@ -13,11 +13,16 @@ import {
 import { Eye, EyeOff, ArrowRight, Dumbbell } from "lucide-react-native";
 
 interface SignupFormProps {
-  onSignup: (
-    email: string,
-    password: string,
-    role: "client" | "trainer",
-  ) => Promise<boolean>;
+  onSignup: (userData: {
+    email: string;
+    password: string;
+    role: "client" | "trainer";
+    name: string;
+    age: string;
+    height: string;
+    weight: string;
+    goal: string;
+  }) => Promise<boolean>;
   onLogin?: () => void;
 }
 
@@ -25,6 +30,11 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [goal, setGoal] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,8 +44,8 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
   );
 
   const handleSignup = async () => {
-    if (!email || !password || !confirmPassword) {
-      setErrorMessage("Please fill in all fields");
+    if (!email || !password || !confirmPassword || !name) {
+      setErrorMessage("Please fill in all required fields");
       return;
     }
 
@@ -53,14 +63,29 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
     setErrorMessage("");
 
     try {
-      const success = await onSignup(email, password, selectedRole);
+      const userData = {
+        email,
+        password,
+        role: selectedRole,
+        name,
+        age: age || "25", // Default values if not provided
+        height: height || "5'8\"",
+        weight: weight || "150",
+        goal:
+          goal ||
+          (selectedRole === "client"
+            ? "Improve fitness"
+            : "Help clients achieve their goals"),
+      };
+
+      const success = await onSignup(userData);
       if (!success) {
         setErrorMessage(
           "Failed to create account. Email may already be in use.",
         );
       }
-    } catch (error) {
-      setErrorMessage("An error occurred during signup");
+    } catch (error: any) {
+      setErrorMessage(error.message || "An error occurred during signup");
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -94,7 +119,21 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
 
           {/* Form Fields */}
           <View className="mb-6">
-            <Text className="text-gray-700 mb-2 font-medium">Email</Text>
+            <Text className="text-gray-700 mb-2 font-medium">
+              Full Name <Text className="text-red-500">*</Text>
+            </Text>
+            <TextInput
+              className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800"
+              placeholder="Your Name"
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View className="mb-6">
+            <Text className="text-gray-700 mb-2 font-medium">
+              Email <Text className="text-red-500">*</Text>
+            </Text>
             <TextInput
               className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800"
               placeholder="your.email@example.com"
@@ -106,7 +145,9 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
           </View>
 
           <View className="mb-6">
-            <Text className="text-gray-700 mb-2 font-medium">Password</Text>
+            <Text className="text-gray-700 mb-2 font-medium">
+              Password <Text className="text-red-500">*</Text>
+            </Text>
             <View className="relative">
               <TextInput
                 className="bg-white border border-gray-200 rounded-xl p-4 pr-12 text-gray-800"
@@ -130,7 +171,7 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
 
           <View className="mb-6">
             <Text className="text-gray-700 mb-2 font-medium">
-              Confirm Password
+              Confirm Password <Text className="text-red-500">*</Text>
             </Text>
             <View className="relative">
               <TextInput
@@ -153,9 +194,63 @@ const SignupForm = ({ onSignup, onLogin }: SignupFormProps) => {
             </View>
           </View>
 
+          {/* Additional Profile Fields */}
+          <View className="mb-6">
+            <Text className="text-gray-700 mb-2 font-medium">Age</Text>
+            <TextInput
+              className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800"
+              placeholder="25"
+              keyboardType="numeric"
+              value={age}
+              onChangeText={setAge}
+            />
+          </View>
+
+          <View className="flex-row mb-6">
+            <View className="flex-1 mr-2">
+              <Text className="text-gray-700 mb-2 font-medium">Height</Text>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800"
+                placeholder="5'8&quot;"
+                value={height}
+                onChangeText={setHeight}
+              />
+            </View>
+            <View className="flex-1 ml-2">
+              <Text className="text-gray-700 mb-2 font-medium">
+                Weight (lbs)
+              </Text>
+              <TextInput
+                className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800"
+                placeholder="150"
+                keyboardType="numeric"
+                value={weight}
+                onChangeText={setWeight}
+              />
+            </View>
+          </View>
+
+          <View className="mb-6">
+            <Text className="text-gray-700 mb-2 font-medium">Fitness Goal</Text>
+            <TextInput
+              className="bg-white border border-gray-200 rounded-xl p-4 text-gray-800"
+              placeholder={
+                selectedRole === "client"
+                  ? "Improve fitness"
+                  : "Help clients achieve their goals"
+              }
+              multiline
+              numberOfLines={2}
+              value={goal}
+              onChangeText={setGoal}
+            />
+          </View>
+
           {/* Role Selection */}
           <View className="mb-8">
-            <Text className="text-gray-700 mb-2 font-medium">I am a:</Text>
+            <Text className="text-gray-700 mb-2 font-medium">
+              I am a: <Text className="text-red-500">*</Text>
+            </Text>
             <View className="flex-row justify-between">
               <TouchableOpacity
                 className={`flex-1 p-4 rounded-xl mr-2 ${selectedRole === "client" ? "bg-pink-600" : "bg-white border border-gray-200"}`}
