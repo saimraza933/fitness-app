@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   TextInput,
   Image,
+  ActivityIndicator,
 } from "react-native";
 import {
   Search,
@@ -17,16 +18,19 @@ import {
   Scale,
   Dumbbell,
 } from "lucide-react-native";
+import { trainerApi } from "../services/api";
 
 interface Client {
-  id: string;
+  id: number | string;
   name: string;
   status: "active" | "pending" | "inactive";
-  lastActive: string;
+  last_active?: string;
+  lastActive?: string;
   progress: number;
-  nextWorkout: string;
+  nextWorkout?: string;
   weight?: string;
   plan?: string;
+  profile_picture?: string | null;
   profilePicture?: string;
 }
 
@@ -36,80 +40,154 @@ interface TrainerDashboardProps {
 
 const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
   const [searchQuery, setSearchQuery] = useState("");
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: "1",
-      name: "Sarah Johnson",
-      status: "active",
-      lastActive: "Today",
-      progress: 85,
-      nextWorkout: "Today",
-      weight: "145 lbs",
-      plan: "Full Body Strength",
-      profilePicture:
-        "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
-    },
-    {
-      id: "2",
-      name: "Emily Davis",
-      status: "active",
-      lastActive: "Yesterday",
-      progress: 70,
-      nextWorkout: "Tomorrow",
-      weight: "132 lbs",
-      plan: "Weight Loss Program",
-      profilePicture:
-        "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
-    },
-    {
-      id: "3",
-      name: "Jessica Wilson",
-      status: "pending",
-      lastActive: "3 days ago",
-      progress: 50,
-      nextWorkout: "Today",
-      weight: "158 lbs",
-      plan: "Cardio Focus",
-      profilePicture:
-        "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
-    },
-    {
-      id: "4",
-      name: "Amanda Brown",
-      status: "inactive",
-      lastActive: "1 week ago",
-      progress: 30,
-      nextWorkout: "Not scheduled",
-      weight: "140 lbs",
-      plan: "Not assigned",
-      profilePicture:
-        "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
-    },
-    {
-      id: "5",
-      name: "Michelle Lee",
-      status: "active",
-      lastActive: "Today",
-      progress: 90,
-      nextWorkout: "Tomorrow",
-      weight: "125 lbs",
-      plan: "Flexibility & Toning",
-      profilePicture:
-        "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
-    },
-    {
-      id: "6",
-      name: "Rachel Taylor",
-      status: "active",
-      lastActive: "Today",
-      progress: 75,
-      nextWorkout: "Today",
-      weight: "138 lbs",
-      plan: "Muscle Building",
-      profilePicture:
-        "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
-    },
-  ]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const clientsData = await trainerApi.getClients();
+
+      // Transform API data to match the component's expected format
+      const formattedClients = clientsData.map((client: any) => ({
+        id: client.id,
+        name: client.name,
+        status: client.status || "active",
+        lastActive: formatDate(client.last_active) || "Today",
+        progress: client.progress || 0,
+        nextWorkout: "Today", // Default value as API doesn't provide this
+        weight: client.weight ? `${client.weight} lbs` : "Not recorded",
+        plan: client.plan || "Not assigned",
+        profilePicture:
+          client.profile_picture ||
+          `https://api.dicebear.com/7.x/avataaars/svg?seed=${client.name}&backgroundColor=ffdfbf`,
+      }));
+
+      setClients(formattedClients);
+    } catch (err) {
+      console.error("Error fetching clients:", err);
+      setError("Failed to load clients. Please try again.");
+      // Fallback to mock data if API fails
+      setClients([
+        {
+          id: "1",
+          name: "Sarah Johnson",
+          status: "active",
+          lastActive: "Today",
+          progress: 85,
+          nextWorkout: "Today",
+          weight: "145 lbs",
+          plan: "Full Body Strength",
+          profilePicture:
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
+        },
+        {
+          id: "2",
+          name: "Emily Davis",
+          status: "active",
+          lastActive: "Yesterday",
+          progress: 70,
+          nextWorkout: "Tomorrow",
+          weight: "132 lbs",
+          plan: "Weight Loss Program",
+          profilePicture:
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
+        },
+        {
+          id: "3",
+          name: "Jessica Wilson",
+          status: "pending",
+          lastActive: "3 days ago",
+          progress: 50,
+          nextWorkout: "Today",
+          weight: "158 lbs",
+          plan: "Cardio Focus",
+          profilePicture:
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
+        },
+        {
+          id: "4",
+          name: "Amanda Brown",
+          status: "inactive",
+          lastActive: "1 week ago",
+          progress: 30,
+          nextWorkout: "Not scheduled",
+          weight: "140 lbs",
+          plan: "Not assigned",
+          profilePicture:
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
+        },
+        {
+          id: "5",
+          name: "Michelle Lee",
+          status: "active",
+          lastActive: "Today",
+          progress: 90,
+          nextWorkout: "Tomorrow",
+          weight: "125 lbs",
+          plan: "Flexibility & Toning",
+          profilePicture:
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
+        },
+        {
+          id: "6",
+          name: "Rachel Taylor",
+          status: "active",
+          lastActive: "Today",
+          progress: 75,
+          nextWorkout: "Today",
+          weight: "138 lbs",
+          plan: "Muscle Building",
+          profilePicture:
+            "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "Unknown";
+
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+
+      // Check if date is today
+      if (date.toDateString() === now.toDateString()) {
+        return "Today";
+      }
+
+      // Check if date is yesterday
+      const yesterday = new Date(now);
+      yesterday.setDate(now.getDate() - 1);
+      if (date.toDateString() === yesterday.toDateString()) {
+        return "Yesterday";
+      }
+
+      // Check if date is within the last week
+      const oneWeekAgo = new Date(now);
+      oneWeekAgo.setDate(now.getDate() - 7);
+      if (date > oneWeekAgo) {
+        const daysAgo = Math.floor(
+          (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        return `${daysAgo} days ago`;
+      }
+
+      // Otherwise return formatted date
+      return date.toLocaleDateString();
+    } catch (e) {
+      return "Unknown date";
+    }
+  };
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -128,19 +206,47 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   };
 
-  const handleClientPress = (client: Client) => {
+  const handleClientPress = async (client: Client) => {
     if (onClientSelect) {
-      // Add additional client details for the detail view
-      const clientWithDetails = {
-        ...client,
-        age: "28",
-        height: "5'6\"",
-        goal: "Lose 10 pounds and improve overall fitness",
-        email: `${client.name.toLowerCase().replace(" ", ".")}@example.com`,
-        phone: "(555) 123-4567",
-        joinDate: "May 15, 2023",
-      };
-      onClientSelect(clientWithDetails);
+      try {
+        // Fetch detailed client information from API
+        const clientDetails = await trainerApi.getClientDetails(client.id);
+
+        // Transform API response to match expected format
+        const clientWithDetails = {
+          ...client,
+          id: clientDetails.id,
+          name: clientDetails.name,
+          age: clientDetails.age?.toString() || "Unknown",
+          weight: clientDetails.weight ? `${clientDetails.weight}` : "Unknown",
+          height: clientDetails.height || "Unknown",
+          goal: clientDetails.goal || "No goal set",
+          email:
+            clientDetails.email ||
+            `${client.name.toLowerCase().replace(" ", ".")}@example.com`,
+          phone: clientDetails.phone || "Not provided",
+          joinDate: formatDate(clientDetails.join_date) || "Unknown",
+          profilePicture:
+            clientDetails.profile_picture || client.profilePicture,
+          notes: clientDetails.notes,
+          assignedPlan: clientDetails.assigned_plan,
+        };
+
+        onClientSelect(clientWithDetails);
+      } catch (err) {
+        console.error("Error fetching client details:", err);
+        // Fallback to basic info if API call fails
+        const clientWithDetails = {
+          ...client,
+          age: "Unknown",
+          height: "Unknown",
+          goal: "Unknown",
+          email: `${client.name.toLowerCase().replace(" ", ".")}@example.com`,
+          phone: "Not available",
+          joinDate: "Unknown",
+        };
+        onClientSelect(clientWithDetails);
+      }
     }
   };
 
@@ -154,6 +260,21 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
           Manage your clients and their progress
         </Text>
       </View>
+
+      {loading && (
+        <View className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+          <ActivityIndicator size="large" color="#be185d" />
+        </View>
+      )}
+
+      {error && (
+        <View className="m-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+          <Text className="text-red-700">{error}</Text>
+          <TouchableOpacity className="mt-2 self-end" onPress={fetchClients}>
+            <Text className="text-pink-700 font-medium">Try Again</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Search Bar */}
       <View className="p-4">

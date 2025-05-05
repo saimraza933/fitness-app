@@ -119,4 +119,54 @@ export const profileApi = {
   },
 };
 
+export const trainerApi = {
+  // Get all trainers
+  getTrainers: async () => {
+    const response = await api.get("/trainers");
+    return response.data;
+  },
+
+  // Get all clients for a trainer
+  getClients: async () => {
+    const response = await api.get("/clients");
+    return response.data;
+  },
+
+  // Get details for a specific client
+  getClientDetails: async (clientId: number | string) => {
+    const response = await api.get(`/clients/${clientId}`);
+    return response.data;
+  },
+
+  // Update client notes
+  updateClientNotes: async (clientId: number | string, notes: string) => {
+    const response = await api.put(`/clients/${clientId}/notes`, { notes });
+    return response.data;
+  },
+
+  // Assign client to trainer
+  assignClientToTrainer: async (
+    clientId: number | string,
+    trainerId: number | string,
+  ) => {
+    const response = await api.post("/client-trainer-relationships", {
+      client_id: clientId,
+      trainer_id: trainerId,
+    });
+    return response.data;
+  },
+
+  // Update client-trainer relationship status
+  updateClientTrainerRelationship: async (
+    relationshipId: number | string,
+    status: string,
+  ) => {
+    const response = await api.put(
+      `/client-trainer-relationships/${relationshipId}`,
+      { status },
+    );
+    return response.data;
+  },
+};
+
 export default api;
