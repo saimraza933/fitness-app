@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   Image,
   TextInput,
+  Alert,
+  Modal,
 } from "react-native";
 import {
   ArrowLeft,
@@ -19,6 +21,7 @@ import {
   Edit2,
   Save,
 } from "lucide-react-native";
+import { trainerApi } from "../services/api";
 
 interface ClientDetailsProps {
   client?: {
@@ -39,6 +42,11 @@ interface ClientDetailsProps {
 const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const [selectedPlan, setSelectedPlan] = useState("Full Body Strength");
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const [notes, setNotes] = useState(
     "Client is making good progress. Focus on improving squat form.",
   );
@@ -121,10 +129,21 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
     setShowPlanDropdown(false);
   };
 
-  const saveNotes = () => {
-    // In a real app, this would save the notes to the backend
-    console.log(`Saving notes: ${notes}`);
-    setIsEditingNotes(false);
+  const saveNotes = async () => {
+    try {
+      // Show loading indicator or disable the button here if needed
+      console.log(`Saving notes: ${notes} for client ID: ${clientData.id}`);
+
+      // Call the API to update client notes
+      await trainerApi.updateClientNotes(clientData.id, notes);
+
+      // Update successful
+      setIsEditingNotes(false);
+      Alert.alert("Success", "Client notes updated successfully");
+    } catch (error) {
+      console.error("Error saving notes:", error);
+      Alert.alert("Error", "Failed to update client notes. Please try again.");
+    }
   };
 
   return (
@@ -207,35 +226,66 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
             Assign Workout Plan
           </Text>
 
-          <View className="relative">
+          <View>
             <TouchableOpacity
               className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
-              onPress={() => setShowPlanDropdown(!showPlanDropdown)}
+              onPress={(event) => {
+                const target = event.target as any;
+                target.measure((x, y, width, height, pageX, pageY) => {
+                  setDropdownPosition({
+                    top: pageY + height,
+                    left: pageX,
+                    width: width,
+                  });
+                  setShowPlanDropdown(true);
+                });
+              }}
             >
               <Text className="text-gray-800">{selectedPlan}</Text>
               <ChevronDown size={20} color="#9ca3af" />
             </TouchableOpacity>
 
-            {showPlanDropdown && (
-              <View className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg mt-1 z-10 shadow-md">
-                {workoutPlans.map((plan) => (
-                  <TouchableOpacity
-                    key={plan}
-                    className={`p-3 border-b border-gray-100 ${plan === selectedPlan ? "bg-pink-50" : ""}`}
-                    onPress={() => {
-                      setSelectedPlan(plan);
-                      setShowPlanDropdown(false);
-                    }}
-                  >
-                    <Text
-                      className={`${plan === selectedPlan ? "text-pink-600 font-medium" : "text-gray-800"}`}
+            <Modal
+              visible={showPlanDropdown}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowPlanDropdown(false)}
+            >
+              <TouchableOpacity
+                style={{ flex: 1 }}
+                activeOpacity={1}
+                onPress={() => setShowPlanDropdown(false)}
+              >
+                <View
+                  className="bg-white border border-gray-300 rounded-lg shadow-md"
+                  style={{
+                    position: "absolute",
+                    top: dropdownPosition.top,
+                    left: dropdownPosition.left,
+                    width: dropdownPosition.width,
+                    zIndex: 9999,
+                    elevation: 5,
+                  }}
+                >
+                  {workoutPlans.map((plan) => (
+                    <TouchableOpacity
+                      key={plan}
+                      className={`p-3 border-b border-gray-100 ${plan === selectedPlan ? "bg-pink-50" : ""}`}
+                      onPress={() => {
+                        setSelectedPlan(plan);
+                        setShowPlanDropdown(false);
+                      }}
                     >
-                      {plan}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
+                      <Text
+                        className={`${plan === selectedPlan ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                      >
+                        {plan}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </TouchableOpacity>
+            </Modal>
           </View>
 
           <TouchableOpacity
