@@ -237,6 +237,45 @@ export const trainerApi = {
     const response = await api.delete(`/workout-plans/${planId}`);
     return response.data;
   },
+
+  // Exercise APIs
+  getExercises: async () => {
+    const response = await api.get("/exercises");
+    return response.data;
+  },
+
+  getExercise: async (exerciseId: number | string) => {
+    const response = await api.get(`/exercises/${exerciseId}`);
+    return response.data;
+  },
+
+  createExercise: async (exerciseData: {
+    name: string;
+    description: string;
+    imageUrl?: string;
+    instructions: string;
+  }) => {
+    const response = await api.post("/exercises", exerciseData);
+    return response.data;
+  },
+
+  updateExercise: async (
+    exerciseId: number | string,
+    exerciseData: {
+      name: string;
+      description: string;
+      imageUrl?: string;
+      instructions: string;
+    },
+  ) => {
+    const response = await api.put(`/exercises/${exerciseId}`, exerciseData);
+    return response.data;
+  },
+
+  deleteExercise: async (exerciseId: number | string) => {
+    const response = await api.delete(`/exercises/${exerciseId}`);
+    return response.data;
+  },
 };
 
 export default api;

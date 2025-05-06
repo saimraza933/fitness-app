@@ -11,6 +11,7 @@ import {
   Alert,
 } from "react-native";
 import WorkoutPlanManager from "./WorkoutPlanManager";
+import ExerciseManager from "./ExerciseManager";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Search,
@@ -21,6 +22,7 @@ import {
   AlertCircle,
   Scale,
   Dumbbell,
+  Barbell,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
 
@@ -55,7 +57,9 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     string | number | null
   >(null);
   const [isAssigning, setIsAssigning] = useState(false);
-  const [activeTab, setActiveTab] = useState<"clients" | "workouts">("clients");
+  const [activeTab, setActiveTab] = useState<
+    "clients" | "workouts" | "exercises"
+  >("clients");
 
   useEffect(() => {
     fetchClients();
@@ -393,12 +397,23 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
             Workout Plans
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          className={`flex-1 py-3 ${activeTab === "exercises" ? "border-b-2 border-pink-600" : ""}`}
+          onPress={() => setActiveTab("exercises")}
+        >
+          <Text
+            className={`text-center font-medium ${activeTab === "exercises" ? "text-pink-800" : "text-gray-500"}`}
+          >
+            Exercises
+          </Text>
+        </TouchableOpacity>
       </View>
 
       {activeTab === "clients" ? (
         <>
           {loading && (
-            <View className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+            <View className="absolute inset-0 items-center justify-center bg-black/20 z-10">
               <ActivityIndicator size="large" color="#be185d" />
             </View>
           )}
@@ -545,8 +560,10 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
             </TouchableOpacity>
           </ScrollView>
         </>
-      ) : (
+      ) : activeTab === "workouts" ? (
         <WorkoutPlanManager />
+      ) : (
+        <ExerciseManager />
       )}
 
       {/* Add Client Modal */}
