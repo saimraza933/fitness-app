@@ -50,10 +50,13 @@ export default function DashboardScreen() {
     );
   }
 
+  // Check if we're viewing client details to hide the tab bar
+  const [hideTabBar, setHideTabBar] = useState(false);
+
   // Use BottomTabNavigator for both client and trainer roles
   return (
     <SafeAreaView className="flex-1 bg-pink-50">
-      <BottomTabNavigator />
+      <BottomTabNavigator hideTabBar={hideTabBar} />
     </SafeAreaView>
   );
 }

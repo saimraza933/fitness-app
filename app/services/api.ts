@@ -132,6 +132,17 @@ export const trainerApi = {
     return response.data;
   },
 
+  // Get all available clients (not assigned to this trainer)
+  getAvailableClients: async () => {
+    try {
+      const response = await api.get("/clients?available=true");
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching available clients:", error);
+      throw error;
+    }
+  },
+
   // Get details for a specific client
   getClientDetails: async (clientId: number | string) => {
     const response = await api.get(`/clients/${clientId}`);
@@ -149,11 +160,27 @@ export const trainerApi = {
     clientId: number | string,
     trainerId: number | string,
   ) => {
-    const response = await api.post("/client-trainer-relationships", {
+    console.log("Sending POST request to /client-trainer-relationships with:", {
       client_id: clientId,
       trainer_id: trainerId,
     });
-    return response.data;
+
+    try {
+      const response = await api.post("/client-trainer-relationships", {
+        client_id: clientId,
+        trainer_id: trainerId,
+      });
+
+      console.log("Response from server:", response.status, response.data);
+      return response.data;
+    } catch (error) {
+      console.error("API call failed:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      throw error;
+    }
   },
 
   // Update client-trainer relationship status
@@ -165,6 +192,49 @@ export const trainerApi = {
       `/client-trainer-relationships/${relationshipId}`,
       { status },
     );
+    return response.data;
+  },
+
+  // Workout Plan APIs
+  getWorkoutPlans: async () => {
+    const response = await api.get("/workout-plans");
+    return response.data;
+  },
+
+  getWorkoutPlan: async (planId: number | string) => {
+    const response = await api.get(`/workout-plans/${planId}`);
+    return response.data;
+  },
+
+  createWorkoutPlan: async (planData: {
+    name: string;
+    description: string;
+    difficulty: string;
+    durationMinutes: number;
+    caloriesBurned: number;
+    exercises: Array<{ id: number | string; sets: number; reps: number }>;
+  }) => {
+    const response = await api.post("/workout-plans", planData);
+    return response.data;
+  },
+
+  updateWorkoutPlan: async (
+    planId: number | string,
+    planData: {
+      name: string;
+      description: string;
+      difficulty: string;
+      durationMinutes: number;
+      caloriesBurned: number;
+      exercises: Array<{ id: number | string; sets: number; reps: number }>;
+    },
+  ) => {
+    const response = await api.put(`/workout-plans/${planId}`, planData);
+    return response.data;
+  },
+
+  deleteWorkoutPlan: async (planId: number | string) => {
+    const response = await api.delete(`/workout-plans/${planId}`);
     return response.data;
   },
 };

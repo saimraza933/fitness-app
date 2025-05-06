@@ -7,7 +7,11 @@ import {
   TextInput,
   Image,
   ActivityIndicator,
+  Modal,
+  Alert,
 } from "react-native";
+import WorkoutPlanManager from "./WorkoutPlanManager";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   Search,
   Users,
@@ -43,10 +47,115 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAddClientModal, setShowAddClientModal] = useState(false);
+  const [availableClients, setAvailableClients] = useState<
+    { id: string | number; name: string }[]
+  >([]);
+  const [selectedClientId, setSelectedClientId] = useState<
+    string | number | null
+  >(null);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [activeTab, setActiveTab] = useState<"clients" | "workouts">("clients");
 
   useEffect(() => {
     fetchClients();
   }, []);
+
+  // Fetch available clients when modal opens
+  useEffect(() => {
+    if (showAddClientModal) {
+      fetchAvailableClients();
+    }
+  }, [showAddClientModal]);
+
+  const fetchAvailableClients = async () => {
+    try {
+      setIsAssigning(false);
+      setSelectedClientId(null);
+
+      // Fetch all available clients that aren't already assigned to this trainer
+      const response = await trainerApi.getAvailableClients();
+
+      // If API call fails, use mock data
+      if (!response || !Array.isArray(response)) {
+        setAvailableClients([
+          { id: "101", name: "Emma Wilson" },
+          { id: "102", name: "Olivia Martinez" },
+          { id: "103", name: "Sophia Thompson" },
+          { id: "104", name: "Isabella Garcia" },
+          { id: "105", name: "Mia Rodriguez" },
+        ]);
+        return;
+      }
+
+      setAvailableClients(
+        response.map((client) => ({
+          id: client.id,
+          name: client.name,
+        })),
+      );
+    } catch (err) {
+      console.error("Error fetching available clients:", err);
+      // Fallback to mock data
+      setAvailableClients([
+        { id: "101", name: "Emma Wilson" },
+        { id: "102", name: "Olivia Martinez" },
+        { id: "103", name: "Sophia Thompson" },
+        { id: "104", name: "Isabella Garcia" },
+        { id: "105", name: "Mia Rodriguez" },
+      ]);
+    }
+  };
+
+  const assignClient = async () => {
+    console.log("assignClient function called");
+
+    if (!selectedClientId) {
+      console.log("No client selected");
+      Alert.alert("Error", "Please select a client to assign");
+      return;
+    }
+
+    console.log("Proceeding with client assignment, ID:", selectedClientId);
+
+    try {
+      setIsAssigning(true);
+
+      // Get the logged-in trainer's ID (in a real app, this would come from auth context/redux)
+      const trainerId = (await AsyncStorage.getItem("user_id")) || "2"; // Default to "2" if not found
+
+      console.log(
+        `Assigning client ${selectedClientId} to trainer ${trainerId}`,
+      );
+
+      // Call the API to create the relationship
+      console.log("About to call API with:", {
+        clientId: selectedClientId,
+        trainerId,
+      });
+      try {
+        const response = await trainerApi.assignClientToTrainer(
+          selectedClientId,
+          trainerId,
+        );
+        console.log("API response:", response);
+      } catch (apiError) {
+        console.error("Error in API call:", apiError);
+        throw apiError;
+      }
+
+      // Close modal and refresh client list
+      setShowAddClientModal(false);
+      setSelectedClientId(null);
+      Alert.alert("Success", "Client assigned successfully");
+      fetchClients(); // Refresh the client list
+    } catch (err) {
+      console.error("Error assigning client:", err);
+      Alert.alert("Error", "Failed to assign client. Please try again.");
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   const fetchClients = async () => {
     try {
@@ -257,151 +366,261 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
           Trainer Dashboard
         </Text>
         <Text className="text-pink-200">
-          Manage your clients and their progress
+          Manage your clients and workout plans
         </Text>
       </View>
 
-      {loading && (
-        <View className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
-          <ActivityIndicator size="large" color="#be185d" />
-        </View>
-      )}
-
-      {error && (
-        <View className="m-4 p-3 bg-red-100 border border-red-300 rounded-lg">
-          <Text className="text-red-700">{error}</Text>
-          <TouchableOpacity className="mt-2 self-end" onPress={fetchClients}>
-            <Text className="text-pink-700 font-medium">Try Again</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Search Bar */}
-      <View className="p-4">
-        <View className="flex-row items-center bg-white rounded-lg px-3 py-2">
-          <Search size={20} color="#9ca3af" />
-          <TextInput
-            className="flex-1 ml-2 text-gray-800"
-            placeholder="Search clients..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-        </View>
-      </View>
-
-      {/* Client Stats */}
-      <View className="flex-row justify-between px-4 mb-4">
-        <View className="bg-white p-3 rounded-xl shadow-sm flex-1 mr-2 items-center">
-          <Text className="text-gray-500 text-sm">Total Clients</Text>
-          <Text className="text-2xl font-bold text-pink-800">
-            {clients.length}
-          </Text>
-        </View>
-        <View className="bg-white p-3 rounded-xl shadow-sm flex-1 mx-2 items-center">
-          <Text className="text-gray-500 text-sm">Active</Text>
-          <Text className="text-2xl font-bold text-green-600">
-            {clients.filter((c) => c.status === "active").length}
-          </Text>
-        </View>
-        <View className="bg-white p-3 rounded-xl shadow-sm flex-1 ml-2 items-center">
-          <Text className="text-gray-500 text-sm">Inactive</Text>
-          <Text className="text-2xl font-bold text-red-600">
-            {clients.filter((c) => c.status === "inactive").length}
-          </Text>
-        </View>
-      </View>
-
-      {/* Client List */}
-      <View className="px-4 mb-2">
-        <View className="flex-row items-center">
-          <Users size={20} color="#be185d" />
-          <Text className="text-lg font-semibold text-pink-800 ml-2">
-            Your Clients
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView className="flex-1">
-        {filteredClients.map((client) => (
-          <TouchableOpacity
-            key={client.id}
-            className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
-            onPress={() => handleClientPress(client)}
+      {/* Tab Navigation */}
+      <View className="flex-row border-b border-gray-200 bg-white">
+        <TouchableOpacity
+          className={`flex-1 py-3 ${activeTab === "clients" ? "border-b-2 border-pink-600" : ""}`}
+          onPress={() => setActiveTab("clients")}
+        >
+          <Text
+            className={`text-center font-medium ${activeTab === "clients" ? "text-pink-800" : "text-gray-500"}`}
           >
-            <View className="flex-row">
-              {/* Client Avatar */}
-              <View className="mr-3">
-                <View className="w-14 h-14 rounded-full overflow-hidden bg-pink-100">
-                  {client.profilePicture && (
-                    <Image
-                      source={{ uri: client.profilePicture }}
-                      className="w-full h-full"
-                    />
-                  )}
-                </View>
-              </View>
+            Clients
+          </Text>
+        </TouchableOpacity>
 
-              {/* Client Info */}
-              <View className="flex-1">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center">
-                    <Text className="font-semibold text-gray-800 text-lg">
-                      {client.name}
-                    </Text>
-                    <View className="ml-2 flex-row items-center">
-                      {getStatusIcon(client.status)}
-                      <Text className="ml-1 text-xs text-gray-500">
-                        {client.status}
-                      </Text>
+        <TouchableOpacity
+          className={`flex-1 py-3 ${activeTab === "workouts" ? "border-b-2 border-pink-600" : ""}`}
+          onPress={() => setActiveTab("workouts")}
+        >
+          <Text
+            className={`text-center font-medium ${activeTab === "workouts" ? "text-pink-800" : "text-gray-500"}`}
+          >
+            Workout Plans
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {activeTab === "clients" ? (
+        <>
+          {loading && (
+            <View className="absolute inset-0 flex items-center justify-center bg-black/20 z-10">
+              <ActivityIndicator size="large" color="#be185d" />
+            </View>
+          )}
+
+          {error && (
+            <View className="m-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+              <Text className="text-red-700">{error}</Text>
+              <TouchableOpacity
+                className="mt-2 self-end"
+                onPress={fetchClients}
+              >
+                <Text className="text-pink-700 font-medium">Try Again</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Search Bar */}
+          <View className="p-4">
+            <View className="flex-row items-center bg-white rounded-lg px-3 py-2">
+              <Search size={20} color="#9ca3af" />
+              <TextInput
+                className="flex-1 ml-2 text-gray-800"
+                placeholder="Search clients..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+            </View>
+          </View>
+
+          {/* Client Stats */}
+          <View className="flex-row justify-between px-4 mb-4">
+            <View className="bg-white p-3 rounded-xl shadow-sm flex-1 mr-2 items-center">
+              <Text className="text-gray-500 text-sm">Total Clients</Text>
+              <Text className="text-2xl font-bold text-pink-800">
+                {clients.length}
+              </Text>
+            </View>
+            <View className="bg-white p-3 rounded-xl shadow-sm flex-1 mx-2 items-center">
+              <Text className="text-gray-500 text-sm">Active</Text>
+              <Text className="text-2xl font-bold text-green-600">
+                {clients.filter((c) => c.status === "active").length}
+              </Text>
+            </View>
+            <View className="bg-white p-3 rounded-xl shadow-sm flex-1 ml-2 items-center">
+              <Text className="text-gray-500 text-sm">Inactive</Text>
+              <Text className="text-2xl font-bold text-red-600">
+                {clients.filter((c) => c.status === "inactive").length}
+              </Text>
+            </View>
+          </View>
+
+          {/* Client List */}
+          <View className="px-4 mb-2">
+            <View className="flex-row items-center">
+              <Users size={20} color="#be185d" />
+              <Text className="text-lg font-semibold text-pink-800 ml-2">
+                Your Clients
+              </Text>
+            </View>
+          </View>
+
+          <ScrollView className="flex-1">
+            {filteredClients.map((client) => (
+              <TouchableOpacity
+                key={client.id}
+                className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
+                onPress={() => handleClientPress(client)}
+              >
+                <View className="flex-row">
+                  {/* Client Avatar */}
+                  <View className="mr-3">
+                    <View className="w-14 h-14 rounded-full overflow-hidden bg-pink-100">
+                      {client.profilePicture && (
+                        <Image
+                          source={{ uri: client.profilePicture }}
+                          className="w-full h-full"
+                        />
+                      )}
                     </View>
                   </View>
-                  <ChevronRight size={20} color="#9ca3af" />
-                </View>
 
-                <Text className="text-gray-500 text-sm">
-                  Last active: {client.lastActive}
-                </Text>
+                  {/* Client Info */}
+                  <View className="flex-1">
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center">
+                        <Text className="font-semibold text-gray-800 text-lg">
+                          {client.name}
+                        </Text>
+                        <View className="ml-2 flex-row items-center">
+                          {getStatusIcon(client.status)}
+                          <Text className="ml-1 text-xs text-gray-500">
+                            {client.status}
+                          </Text>
+                        </View>
+                      </View>
+                      <ChevronRight size={20} color="#9ca3af" />
+                    </View>
 
-                <View className="mt-2">
-                  <View className="flex-row justify-between mb-1">
-                    <Text className="text-xs text-gray-500">Progress</Text>
-                    <Text className="text-xs font-medium">
-                      {client.progress}%
+                    <Text className="text-gray-500 text-sm">
+                      Last active: {client.lastActive}
                     </Text>
-                  </View>
-                  <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
-                    <View
-                      className="bg-pink-600 h-full rounded-full"
-                      style={{ width: `${client.progress}%` }}
-                    />
+
+                    <View className="mt-2">
+                      <View className="flex-row justify-between mb-1">
+                        <Text className="text-xs text-gray-500">Progress</Text>
+                        <Text className="text-xs font-medium">
+                          {client.progress}%
+                        </Text>
+                      </View>
+                      <View className="bg-gray-200 h-2 rounded-full overflow-hidden">
+                        <View
+                          className="bg-pink-600 h-full rounded-full"
+                          style={{ width: `${client.progress}%` }}
+                        />
+                      </View>
+                    </View>
+
+                    <View className="flex-row justify-between mt-3">
+                      <View className="flex-row items-center">
+                        <Scale size={14} color="#be185d" />
+                        <Text className="text-sm ml-1 text-gray-700">
+                          {client.weight}
+                        </Text>
+                      </View>
+
+                      <View className="flex-row items-center">
+                        <Dumbbell size={14} color="#be185d" />
+                        <Text className="text-sm ml-1 text-gray-700">
+                          {client.plan}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 </View>
+              </TouchableOpacity>
+            ))}
 
-                <View className="flex-row justify-between mt-3">
-                  <View className="flex-row items-center">
-                    <Scale size={14} color="#be185d" />
-                    <Text className="text-sm ml-1 text-gray-700">
-                      {client.weight}
-                    </Text>
-                  </View>
+            {/* Add Client Button */}
+            <TouchableOpacity
+              className="bg-pink-600 mx-4 py-3 rounded-lg items-center mb-8"
+              onPress={() => setShowAddClientModal(true)}
+            >
+              <Text className="text-white font-semibold">Add New Client</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </>
+      ) : (
+        <WorkoutPlanManager />
+      )}
 
-                  <View className="flex-row items-center">
-                    <Dumbbell size={14} color="#be185d" />
-                    <Text className="text-sm ml-1 text-gray-700">
-                      {client.plan}
-                    </Text>
-                  </View>
+      {/* Add Client Modal */}
+      <Modal
+        visible={showAddClientModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddClientModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white w-5/6 rounded-xl p-6">
+            <Text className="text-xl font-bold text-pink-800 mb-4">
+              Add New Client
+            </Text>
+
+            <Text className="text-gray-700 mb-2 font-medium">
+              Select Client
+            </Text>
+            <View className="border border-gray-300 rounded-lg mb-4">
+              {availableClients.map((client) => (
+                <TouchableOpacity
+                  key={client.id}
+                  className={`p-3 border-b border-gray-100 ${client.id === selectedClientId ? "bg-pink-50" : ""}`}
+                  onPress={() => setSelectedClientId(client.id)}
+                >
+                  <Text
+                    className={`${client.id === selectedClientId ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                  >
+                    {client.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+
+              {availableClients.length === 0 && (
+                <View className="p-3">
+                  <Text className="text-gray-500 italic">
+                    No available clients found
+                  </Text>
                 </View>
-              </View>
+              )}
             </View>
-          </TouchableOpacity>
-        ))}
 
-        {/* Add Client Button */}
-        <TouchableOpacity className="bg-pink-600 mx-4 py-3 rounded-lg items-center mb-8">
-          <Text className="text-white font-semibold">Add New Client</Text>
-        </TouchableOpacity>
-      </ScrollView>
+            <View className="flex-row justify-end">
+              <TouchableOpacity
+                className="bg-gray-200 py-2 px-4 rounded-lg mr-2"
+                onPress={() => setShowAddClientModal(false)}
+              >
+                <Text className="text-gray-800 font-medium">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`bg-pink-600 py-2 px-4 rounded-lg ${isAssigning ? "opacity-70" : ""}`}
+                onPress={() => {
+                  console.log("Assign Client button pressed");
+                  console.log("Selected client ID:", selectedClientId);
+                  assignClient();
+                }}
+                disabled={isAssigning || !selectedClientId}
+              >
+                {isAssigning ? (
+                  <View className="flex-row items-center">
+                    <ActivityIndicator size="small" color="white" />
+                    <Text className="text-white font-medium ml-2">
+                      Assigning...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-white font-medium">Assign Client</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };

@@ -46,7 +46,13 @@ const TabItem = ({
   );
 };
 
-const BottomTabNavigator = () => {
+interface BottomTabNavigatorProps {
+  hideTabBar?: boolean;
+}
+
+const BottomTabNavigator = ({
+  hideTabBar = false,
+}: BottomTabNavigatorProps) => {
   // Get auth state from Redux
   const { userRole } = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("Home");
@@ -71,6 +77,8 @@ const BottomTabNavigator = () => {
 
   // Render the active component based on the selected tab and user role
   const renderContent = () => {
+    // If we're hiding the tab bar, it means we're viewing client details
+    // so we should pass the onClientDetailsView prop to ProgressSection
     // Use localUserRole if available, otherwise fall back to userRole from context
     const effectiveRole = localUserRole || userRole;
 
@@ -93,6 +101,9 @@ const BottomTabNavigator = () => {
             <ProgressSection
               onClientSelect={setSelectedProgressClient}
               selectedClient={selectedProgressClient}
+              onClientDetailsView={
+                hideTabBar ? undefined : (isViewing) => setHideTabBar(isViewing)
+              }
             />
           );
         case "Profile":
@@ -122,6 +133,9 @@ const BottomTabNavigator = () => {
             <ProgressSection
               onClientSelect={setSelectedProgressClient}
               selectedClient={selectedProgressClient}
+              onClientDetailsView={
+                hideTabBar ? undefined : (isViewing) => setHideTabBar(isViewing)
+              }
             />
           );
         case "Profile":
@@ -229,30 +243,32 @@ const BottomTabNavigator = () => {
       {/* Content Area */}
       <View className="flex-1">{renderContent()}</View>
 
-      {/* Bottom Tab Bar */}
-      <View
-        className="flex-row bg-white h-16 items-center border-t border-gray-100"
-        style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 10,
-        }}
-      >
-        {getTabConfig().map((tab, index) => (
-          <TabItem
-            key={index}
-            name={tab.name}
-            icon={tab.icon}
-            hasNotification={tab.hasNotification}
-            isActive={tab.isActive}
-            onPress={() =>
-              setActiveTab(tab.name === "Clients" ? "Home" : tab.name)
-            }
-          />
-        ))}
-      </View>
+      {/* Bottom Tab Bar - hidden when viewing client details */}
+      {!hideTabBar && (
+        <View
+          className="flex-row bg-white h-16 items-center border-t border-gray-100"
+          style={{
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.1,
+            shadowRadius: 4,
+            elevation: 10,
+          }}
+        >
+          {getTabConfig().map((tab, index) => (
+            <TabItem
+              key={index}
+              name={tab.name}
+              icon={tab.icon}
+              hasNotification={tab.hasNotification}
+              isActive={tab.isActive}
+              onPress={() =>
+                setActiveTab(tab.name === "Clients" ? "Home" : tab.name)
+              }
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 };

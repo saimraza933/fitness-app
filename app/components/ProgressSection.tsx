@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -40,11 +40,13 @@ interface Client {
 interface ProgressSectionProps {
   onClientSelect?: (client: Client) => void;
   selectedClient?: Client | null;
+  onClientDetailsView?: (isViewing: boolean) => void;
 }
 
 const ProgressSection = ({
   onClientSelect,
   selectedClient,
+  onClientDetailsView,
 }: ProgressSectionProps = {}) => {
   const { userRole } = useAuth();
   const isTrainer = userRole === "trainer";
@@ -337,6 +339,13 @@ const ProgressSection = ({
 
   // Render client progress view (for individual client or current user)
   const renderClientProgress = (client?: Client) => {
+    // Notify parent component when viewing client details
+    useEffect(() => {
+      if (onClientDetailsView && client) {
+        onClientDetailsView(true);
+        return () => onClientDetailsView(false);
+      }
+    }, [client, onClientDetailsView]);
     return [
       // Main content view
       <View key="main-content" className="p-4">
