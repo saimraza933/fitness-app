@@ -18,6 +18,7 @@ import {
   Trash2,
   X,
   ChevronRight,
+  ChevronDown,
   Save,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
@@ -51,6 +52,19 @@ const WorkoutPlanManager = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [showPlanDetails, setShowPlanDetails] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
+  const [showExerciseDropdown, setShowExerciseDropdown] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null,
+  );
+  const [exerciseSets, setExerciseSets] = useState("");
+  const [exerciseReps, setExerciseReps] = useState("");
+  const [loadingExercises, setLoadingExercises] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<{
@@ -71,6 +85,7 @@ const WorkoutPlanManager = () => {
 
   useEffect(() => {
     fetchWorkoutPlans();
+    fetchExercises();
   }, []);
 
   const fetchWorkoutPlans = async () => {
@@ -194,6 +209,75 @@ const WorkoutPlanManager = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchExercises = async () => {
+    try {
+      setLoadingExercises(true);
+      // In a real app, this would call the API
+      // const data = await trainerApi.getExercises();
+      // setAvailableExercises(data);
+
+      // Mock data for now
+      setTimeout(() => {
+        setAvailableExercises([
+          {
+            id: "1",
+            name: "Squats",
+            sets: 3,
+            reps: 15,
+            imageUrl:
+              "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
+            instructions:
+              "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
+          },
+          {
+            id: "2",
+            name: "Push-ups",
+            sets: 3,
+            reps: 10,
+            imageUrl:
+              "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
+            instructions:
+              "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
+          },
+          {
+            id: "3",
+            name: "Lunges",
+            sets: 3,
+            reps: 12,
+            imageUrl:
+              "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+            instructions:
+              "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
+          },
+          {
+            id: "4",
+            name: "Plank",
+            sets: 3,
+            reps: 30,
+            imageUrl:
+              "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
+            instructions:
+              "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
+          },
+          {
+            id: "5",
+            name: "Deadlift",
+            sets: 3,
+            reps: 8,
+            imageUrl:
+              "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
+            instructions:
+              "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
+          },
+        ]);
+        setLoadingExercises(false);
+      }, 1000);
+    } catch (err) {
+      console.error("Error fetching exercises:", err);
+      setLoadingExercises(false);
     }
   };
 
@@ -551,11 +635,199 @@ const WorkoutPlanManager = () => {
                 </View>
               </View>
 
-              {/* Exercise list would go here - simplified for this implementation */}
-              <Text className="text-gray-500 italic mb-4">
-                Note: Exercise management is available when viewing plan
-                details.
-              </Text>
+              {/* Exercise Selection */}
+              <View className="mb-4">
+                <Text className="text-lg font-semibold text-pink-800 mb-3">
+                  Exercises
+                </Text>
+
+                {/* Current Exercises List */}
+                {formData.exercises.length > 0 ? (
+                  <View className="mb-4">
+                    {formData.exercises.map((exercise, index) => (
+                      <View
+                        key={index}
+                        className="bg-gray-50 p-3 rounded-lg mb-2 flex-row justify-between items-center"
+                      >
+                        <View>
+                          <Text className="font-medium text-gray-800">
+                            {exercise.name}
+                          </Text>
+                          <Text className="text-gray-600 text-sm">
+                            {exercise.sets} sets × {exercise.reps} reps
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          onPress={() => {
+                            setFormData({
+                              ...formData,
+                              exercises: formData.exercises.filter(
+                                (_, i) => i !== index,
+                              ),
+                            });
+                          }}
+                        >
+                          <Trash2 size={18} color="#dc2626" />
+                        </TouchableOpacity>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <View className="bg-gray-50 p-4 rounded-lg mb-4 items-center">
+                    <Text className="text-gray-500">
+                      No exercises added yet
+                    </Text>
+                  </View>
+                )}
+
+                {/* Add Exercise Section */}
+                <View className="bg-white border border-gray-200 rounded-lg p-4">
+                  <Text className="font-medium text-gray-700 mb-3">
+                    Add Exercise
+                  </Text>
+
+                  {/* Exercise Dropdown */}
+                  <View className="mb-3">
+                    <Text className="text-gray-600 mb-1">Select Exercise</Text>
+                    <TouchableOpacity
+                      className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
+                      onPress={(event) => {
+                        const target = event.target as any;
+                        target.measure((x, y, width, height, pageX, pageY) => {
+                          setDropdownPosition({
+                            top: pageY + height,
+                            left: pageX,
+                            width: width,
+                          });
+                          setShowExerciseDropdown(true);
+                        });
+                      }}
+                    >
+                      <Text className="text-gray-800">
+                        {selectedExercise
+                          ? selectedExercise.name
+                          : "Select an exercise"}
+                      </Text>
+                      <ChevronDown size={20} color="#9ca3af" />
+                    </TouchableOpacity>
+
+                    <Modal
+                      visible={showExerciseDropdown}
+                      transparent={true}
+                      animationType="fade"
+                      onRequestClose={() => setShowExerciseDropdown(false)}
+                    >
+                      <TouchableOpacity
+                        style={{ flex: 1 }}
+                        activeOpacity={1}
+                        onPress={() => setShowExerciseDropdown(false)}
+                      >
+                        <View
+                          className="bg-white border border-gray-300 rounded-lg shadow-md"
+                          style={{
+                            position: "absolute",
+                            top: dropdownPosition.top,
+                            left: dropdownPosition.left,
+                            width: dropdownPosition.width,
+                            zIndex: 9999,
+                            elevation: 5,
+                          }}
+                        >
+                          {loadingExercises ? (
+                            <View className="p-3 items-center">
+                              <ActivityIndicator size="small" color="#be185d" />
+                              <Text className="text-gray-500 mt-1">
+                                Loading exercises...
+                              </Text>
+                            </View>
+                          ) : (
+                            availableExercises.map((exercise) => (
+                              <TouchableOpacity
+                                key={exercise.id}
+                                className={`p-3 border-b border-gray-100 ${selectedExercise?.id === exercise.id ? "bg-pink-50" : ""}`}
+                                onPress={() => {
+                                  setSelectedExercise(exercise);
+                                  setExerciseSets(
+                                    exercise.sets?.toString() || "3",
+                                  );
+                                  setExerciseReps(
+                                    exercise.reps?.toString() || "10",
+                                  );
+                                  setShowExerciseDropdown(false);
+                                }}
+                              >
+                                <Text
+                                  className={`${selectedExercise?.id === exercise.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                                >
+                                  {exercise.name}
+                                </Text>
+                              </TouchableOpacity>
+                            ))
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    </Modal>
+                  </View>
+
+                  {/* Sets and Reps Inputs */}
+                  <View className="flex-row mb-3">
+                    <View className="flex-1 mr-2">
+                      <Text className="text-gray-600 mb-1">Sets</Text>
+                      <TextInput
+                        className="border border-gray-300 rounded-lg p-2 text-gray-800"
+                        value={exerciseSets}
+                        onChangeText={(text) =>
+                          setExerciseSets(text.replace(/[^0-9]/g, ""))
+                        }
+                        keyboardType="numeric"
+                        placeholder="3"
+                      />
+                    </View>
+                    <View className="flex-1 ml-2">
+                      <Text className="text-gray-600 mb-1">Reps</Text>
+                      <TextInput
+                        className="border border-gray-300 rounded-lg p-2 text-gray-800"
+                        value={exerciseReps}
+                        onChangeText={(text) =>
+                          setExerciseReps(text.replace(/[^0-9]/g, ""))
+                        }
+                        keyboardType="numeric"
+                        placeholder="10"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Add Exercise Button */}
+                  <TouchableOpacity
+                    className={`bg-pink-600 py-2 rounded-lg items-center ${!selectedExercise ? "opacity-50" : ""}`}
+                    disabled={!selectedExercise}
+                    onPress={() => {
+                      if (selectedExercise) {
+                        const newExercise = {
+                          id: selectedExercise.id,
+                          name: selectedExercise.name,
+                          sets: parseInt(exerciseSets) || 3,
+                          reps: parseInt(exerciseReps) || 10,
+                          imageUrl: selectedExercise.imageUrl,
+                          instructions: selectedExercise.instructions,
+                        };
+
+                        setFormData({
+                          ...formData,
+                          exercises: [...formData.exercises, newExercise],
+                        });
+
+                        // Reset selection
+                        setSelectedExercise(null);
+                        setExerciseSets("");
+                        setExerciseReps("");
+                      }
+                    }}
+                  >
+                    <Text className="text-white font-medium">Add Exercise</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </ScrollView>
 
             <View className="flex-row justify-end mt-4">

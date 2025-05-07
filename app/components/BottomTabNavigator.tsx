@@ -59,6 +59,8 @@ const BottomTabNavigator = ({
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedProgressClient, setSelectedProgressClient] = useState(null);
   const [localUserRole, setLocalUserRole] = useState<string | null>(null);
+  // Define hideTabBarState to handle tab bar visibility internally
+  const [hideTabBarState, setHideTabBarState] = useState(hideTabBar);
 
   // Use effect to capture the userRole when it changes
   useEffect(() => {
@@ -101,9 +103,7 @@ const BottomTabNavigator = ({
             <ProgressSection
               onClientSelect={setSelectedProgressClient}
               selectedClient={selectedProgressClient}
-              onClientDetailsView={
-                hideTabBar ? undefined : (isViewing) => setHideTabBar(isViewing)
-              }
+              onClientDetailsView={(isViewing) => setHideTabBarState(isViewing)}
             />
           );
         case "Profile":
@@ -133,9 +133,7 @@ const BottomTabNavigator = ({
             <ProgressSection
               onClientSelect={setSelectedProgressClient}
               selectedClient={selectedProgressClient}
-              onClientDetailsView={
-                hideTabBar ? undefined : (isViewing) => setHideTabBar(isViewing)
-              }
+              onClientDetailsView={(isViewing) => setHideTabBarState(isViewing)}
             />
           );
         case "Profile":

@@ -251,8 +251,8 @@ const ExerciseManager = () => {
   );
 
   return (
-    <View className="flex-1 bg-pink-50">
-      <View className="p-4">
+    <View style={{ flex: 1 }} className="bg-pink-50">
+      <View style={{ flex: 1, height: "auto" }} className="p-4">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-xl font-bold text-pink-800">Exercises</Text>
           <TouchableOpacity
@@ -272,7 +272,7 @@ const ExerciseManager = () => {
               className="flex-1 ml-2 text-gray-800"
               placeholder="Search exercises..."
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(text) => setSearchQuery(text)}
             />
           </View>
         </View>
@@ -296,7 +296,13 @@ const ExerciseManager = () => {
           </View>
         )}
 
-        <ScrollView className="mb-4">
+        <ScrollView
+          style={{ flex: 1, backgroundColor: "transparent" }}
+          contentContainerStyle={{ paddingBottom: 100 }}
+          showsVerticalScrollIndicator={true}
+          alwaysBounceVertical={true}
+          scrollEnabled={true}
+        >
           {filteredExercises.map((exercise) => (
             <View
               key={exercise.id}

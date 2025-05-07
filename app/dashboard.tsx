@@ -9,6 +9,9 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [forceRender, setForceRender] = useState(0);
+  // Move the hideTabBar state declaration to the top level of the component
+  // to ensure it's always called in the same order
+  const [hideTabBar, setHideTabBar] = useState(false);
 
   console.log(
     "Dashboard screen - user role:",
@@ -49,9 +52,6 @@ export default function DashboardScreen() {
       </View>
     );
   }
-
-  // Check if we're viewing client details to hide the tab bar
-  const [hideTabBar, setHideTabBar] = useState(false);
 
   // Use BottomTabNavigator for both client and trainer roles
   return (
