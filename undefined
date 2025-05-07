@@ -1,0 +1,9 @@
+import WorkoutPlanManager from "@/app/components/WorkoutPlanManager";
+
+export default function WorkoutPlanManagerStoryboard() {
+  return (
+    <div className="bg-white min-h-screen">
+      <WorkoutPlanManager />
+    </div>
+  );
+}

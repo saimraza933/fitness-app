@@ -93,6 +93,7 @@ const WorkoutPlanManager = () => {
       setLoading(true);
       setError(null);
       const data = await trainerApi.getWorkoutPlans();
+      console.log("Fetched workout plans:", data);
       setWorkoutPlans(data);
     } catch (err) {
       console.error("Error fetching workout plans:", err);
@@ -150,6 +151,7 @@ const WorkoutPlanManager = () => {
     try {
       setLoading(true);
       const data = await trainerApi.getWorkoutPlan(planId);
+      console.log("Fetched plan details:", data);
       setSelectedPlan(data);
       setShowPlanDetails(true);
     } catch (err) {
@@ -215,68 +217,77 @@ const WorkoutPlanManager = () => {
   const fetchExercises = async () => {
     try {
       setLoadingExercises(true);
-      // In a real app, this would call the API
-      // const data = await trainerApi.getExercises();
-      // setAvailableExercises(data);
+      // Call the API to get exercises
+      const data = await trainerApi.getExercises();
 
-      // Mock data for now
-      setTimeout(() => {
-        setAvailableExercises([
-          {
-            id: "1",
-            name: "Squats",
-            sets: 3,
-            reps: 15,
-            imageUrl:
-              "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
-            instructions:
-              "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
-          },
-          {
-            id: "2",
-            name: "Push-ups",
-            sets: 3,
-            reps: 10,
-            imageUrl:
-              "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
-            instructions:
-              "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
-          },
-          {
-            id: "3",
-            name: "Lunges",
-            sets: 3,
-            reps: 12,
-            imageUrl:
-              "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
-            instructions:
-              "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
-          },
-          {
-            id: "4",
-            name: "Plank",
-            sets: 3,
-            reps: 30,
-            imageUrl:
-              "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
-            instructions:
-              "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
-          },
-          {
-            id: "5",
-            name: "Deadlift",
-            sets: 3,
-            reps: 8,
-            imageUrl:
-              "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-            instructions:
-              "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
-          },
-        ]);
-        setLoadingExercises(false);
-      }, 1000);
+      // Transform the data to match our Exercise interface if needed
+      const formattedExercises = data.map((exercise) => ({
+        id: exercise.id,
+        name: exercise.name,
+        sets: exercise.default_sets || 3,
+        reps: exercise.default_reps || 10,
+        imageUrl: exercise.imageUrl || exercise.image_url,
+        instructions: exercise.instructions,
+      }));
+
+      setAvailableExercises(formattedExercises);
+      setLoadingExercises(false);
     } catch (err) {
       console.error("Error fetching exercises:", err);
+
+      // Fallback to mock data if API fails
+      setAvailableExercises([
+        {
+          id: "1",
+          name: "Squats",
+          sets: 3,
+          reps: 15,
+          imageUrl:
+            "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
+          instructions:
+            "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
+        },
+        {
+          id: "2",
+          name: "Push-ups",
+          sets: 3,
+          reps: 10,
+          imageUrl:
+            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
+          instructions:
+            "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
+        },
+        {
+          id: "3",
+          name: "Lunges",
+          sets: 3,
+          reps: 12,
+          imageUrl:
+            "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+          instructions:
+            "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
+        },
+        {
+          id: "4",
+          name: "Plank",
+          sets: 3,
+          reps: 30,
+          imageUrl:
+            "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
+          instructions:
+            "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
+        },
+        {
+          id: "5",
+          name: "Deadlift",
+          sets: 3,
+          reps: 8,
+          imageUrl:
+            "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
+          instructions:
+            "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
+        },
+      ]);
       setLoadingExercises(false);
     }
   };
@@ -296,13 +307,28 @@ const WorkoutPlanManager = () => {
 
   const handleEditPlan = (plan: WorkoutPlan) => {
     setIsEditing(true);
+
+    // Ensure exercises are properly formatted
+    const formattedExercises = plan.exercises
+      ? plan.exercises.map((exercise) => ({
+          id: exercise.id,
+          name: exercise.name,
+          sets: exercise.sets || 3,
+          reps: exercise.reps || 10,
+          imageUrl: exercise.imageUrl,
+          instructions: exercise.instructions,
+        }))
+      : [];
+
+    console.log("Editing plan with exercises:", formattedExercises);
+
     setFormData({
       name: plan.name,
       description: plan.description,
       difficulty: plan.difficulty,
       durationMinutes: plan.durationMinutes.toString(),
       caloriesBurned: plan.caloriesBurned.toString(),
-      exercises: plan.exercises || [],
+      exercises: formattedExercises,
     });
     setSelectedPlan(plan);
     setShowPlanModal(true);
@@ -332,14 +358,39 @@ const WorkoutPlanManager = () => {
   };
 
   const handleSavePlan = async () => {
-    // Validate form
-    if (
-      !formData.name ||
-      !formData.description ||
-      !formData.durationMinutes ||
-      !formData.caloriesBurned
-    ) {
-      Alert.alert("Error", "Please fill in all required fields");
+    // Validate form with specific field validation
+    const missingFields = [];
+
+    if (!formData.name.trim()) {
+      missingFields.push("Plan Name");
+    }
+
+    if (!formData.description.trim()) {
+      missingFields.push("Description");
+    }
+
+    if (!formData.durationMinutes) {
+      missingFields.push("Duration");
+    }
+
+    if (!formData.caloriesBurned) {
+      missingFields.push("Calories Burned");
+    }
+
+    if (missingFields.length > 0) {
+      Alert.alert(
+        "Missing Information",
+        `Please fill in the following required fields:\n\n${missingFields.join("\n")}`,
+      );
+      return;
+    }
+
+    // Validate that at least one exercise is added
+    if (formData.exercises.length === 0) {
+      Alert.alert(
+        "No Exercises Added",
+        "Your workout plan must include at least one exercise. Please add exercises using the exercise selector below.",
+      );
       return;
     }
 
@@ -546,7 +597,7 @@ const WorkoutPlanManager = () => {
             <ScrollView className="max-h-96">
               <View className="mb-4">
                 <Text className="text-gray-700 mb-1 font-medium">
-                  Plan Name
+                  Plan Name <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
                   className="border border-gray-300 rounded-lg p-2 text-gray-800"
@@ -555,12 +606,14 @@ const WorkoutPlanManager = () => {
                     setFormData({ ...formData, name: text })
                   }
                   placeholder="e.g. Full Body Strength"
+                  placeholderTextColor="#9ca3af"
                 />
+                <Text className="text-xs text-gray-500 mt-1">Required</Text>
               </View>
 
               <View className="mb-4">
                 <Text className="text-gray-700 mb-1 font-medium">
-                  Description
+                  Description <Text className="text-red-500">*</Text>
                 </Text>
                 <TextInput
                   className="border border-gray-300 rounded-lg p-2 text-gray-800"
@@ -569,10 +622,12 @@ const WorkoutPlanManager = () => {
                     setFormData({ ...formData, description: text })
                   }
                   placeholder="Describe the workout plan"
+                  placeholderTextColor="#9ca3af"
                   multiline
                   numberOfLines={3}
                   textAlignVertical="top"
                 />
+                <Text className="text-xs text-gray-500 mt-1">Required</Text>
               </View>
 
               <View className="mb-4">
@@ -614,7 +669,9 @@ const WorkoutPlanManager = () => {
                     }
                     keyboardType="numeric"
                     placeholder="45"
+                    placeholderTextColor="#9ca3af"
                   />
+                  <Text className="text-xs text-gray-500 mt-1">Required</Text>
                 </View>
                 <View className="flex-1 ml-2">
                   <Text className="text-gray-700 mb-1 font-medium">
@@ -631,15 +688,23 @@ const WorkoutPlanManager = () => {
                     }
                     keyboardType="numeric"
                     placeholder="300"
+                    placeholderTextColor="#9ca3af"
                   />
+                  <Text className="text-xs text-gray-500 mt-1">Required</Text>
                 </View>
               </View>
 
               {/* Exercise Selection */}
               <View className="mb-4">
-                <Text className="text-lg font-semibold text-pink-800 mb-3">
-                  Exercises
-                </Text>
+                <View className="flex-row items-center mb-3">
+                  <Text className="text-lg font-semibold text-pink-800">
+                    Exercises
+                  </Text>
+                  <Text className="text-red-500 ml-1">*</Text>
+                  <Text className="text-xs text-gray-500 ml-2">
+                    (At least one required)
+                  </Text>
+                </View>
 
                 {/* Current Exercises List */}
                 {formData.exercises.length > 0 ? (
@@ -772,7 +837,9 @@ const WorkoutPlanManager = () => {
                   {/* Sets and Reps Inputs */}
                   <View className="flex-row mb-3">
                     <View className="flex-1 mr-2">
-                      <Text className="text-gray-600 mb-1">Sets</Text>
+                      <Text className="text-gray-600 mb-1">
+                        Sets <Text className="text-red-500">*</Text>
+                      </Text>
                       <TextInput
                         className="border border-gray-300 rounded-lg p-2 text-gray-800"
                         value={exerciseSets}
@@ -781,10 +848,13 @@ const WorkoutPlanManager = () => {
                         }
                         keyboardType="numeric"
                         placeholder="3"
+                        placeholderTextColor="#9ca3af"
                       />
                     </View>
                     <View className="flex-1 ml-2">
-                      <Text className="text-gray-600 mb-1">Reps</Text>
+                      <Text className="text-gray-600 mb-1">
+                        Reps <Text className="text-red-500">*</Text>
+                      </Text>
                       <TextInput
                         className="border border-gray-300 rounded-lg p-2 text-gray-800"
                         value={exerciseReps}
@@ -793,6 +863,7 @@ const WorkoutPlanManager = () => {
                         }
                         keyboardType="numeric"
                         placeholder="10"
+                        placeholderTextColor="#9ca3af"
                       />
                     </View>
                   </View>
@@ -802,6 +873,29 @@ const WorkoutPlanManager = () => {
                     className={`bg-pink-600 py-2 rounded-lg items-center ${!selectedExercise ? "opacity-50" : ""}`}
                     disabled={!selectedExercise}
                     onPress={() => {
+                      if (!selectedExercise) {
+                        Alert.alert(
+                          "No Exercise Selected",
+                          "Please select an exercise from the dropdown first.",
+                        );
+                        return;
+                      }
+
+                      if (!exerciseSets || parseInt(exerciseSets) <= 0) {
+                        Alert.alert(
+                          "Invalid Sets",
+                          "Please enter a valid number of sets (greater than 0).",
+                        );
+                        return;
+                      }
+
+                      if (!exerciseReps || parseInt(exerciseReps) <= 0) {
+                        Alert.alert(
+                          "Invalid Reps",
+                          "Please enter a valid number of reps (greater than 0).",
+                        );
+                        return;
+                      }
                       if (selectedExercise) {
                         const newExercise = {
                           id: selectedExercise.id,
