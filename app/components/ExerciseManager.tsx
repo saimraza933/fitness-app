@@ -67,69 +67,67 @@ const ExerciseManager = () => {
       setLoading(true);
       setError(null);
 
-      // In a real app, this would call the API
-      // const data = await trainerApi.getExercises();
-      // setExercises(data);
-
-      // Mock data for now
-      setTimeout(() => {
-        setExercises([
-          {
-            id: "1",
-            name: "Squats",
-            description:
-              "Lower body compound exercise targeting quadriceps, hamstrings, and glutes",
-            imageUrl:
-              "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
-            instructions:
-              "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
-          },
-          {
-            id: "2",
-            name: "Push-ups",
-            description:
-              "Upper body exercise that works the chest, shoulders, and triceps",
-            imageUrl:
-              "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
-            instructions:
-              "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
-          },
-          {
-            id: "3",
-            name: "Lunges",
-            description:
-              "Lower body exercise that targets the quadriceps, hamstrings, and glutes",
-            imageUrl:
-              "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
-            instructions:
-              "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
-          },
-          {
-            id: "4",
-            name: "Plank",
-            description:
-              "Core exercise that strengthens the abdominals, back, and shoulders",
-            imageUrl:
-              "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
-            instructions:
-              "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
-          },
-          {
-            id: "5",
-            name: "Deadlift",
-            description:
-              "Compound exercise that works the entire posterior chain",
-            imageUrl:
-              "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-            instructions:
-              "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
-          },
-        ]);
-        setLoading(false);
-      }, 1000);
+      // Call the API to get exercises
+      const data = await trainerApi.getExercises();
+      setExercises(data);
+      setLoading(false);
     } catch (err) {
       console.error("Error fetching exercises:", err);
       setError("Failed to load exercises. Please try again.");
+
+      // Fallback to mock data if API fails
+      setExercises([
+        {
+          id: "1",
+          name: "Squats",
+          description:
+            "Lower body compound exercise targeting quadriceps, hamstrings, and glutes",
+          imageUrl:
+            "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
+          instructions:
+            "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
+        },
+        {
+          id: "2",
+          name: "Push-ups",
+          description:
+            "Upper body exercise that works the chest, shoulders, and triceps",
+          imageUrl:
+            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
+          instructions:
+            "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
+        },
+        {
+          id: "3",
+          name: "Lunges",
+          description:
+            "Lower body exercise that targets the quadriceps, hamstrings, and glutes",
+          imageUrl:
+            "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+          instructions:
+            "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
+        },
+        {
+          id: "4",
+          name: "Plank",
+          description:
+            "Core exercise that strengthens the abdominals, back, and shoulders",
+          imageUrl:
+            "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
+          instructions:
+            "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
+        },
+        {
+          id: "5",
+          name: "Deadlift",
+          description:
+            "Compound exercise that works the entire posterior chain",
+          imageUrl:
+            "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
+          instructions:
+            "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
+        },
+      ]);
       setLoading(false);
     }
   };
@@ -167,10 +165,10 @@ const ExerciseManager = () => {
 
     try {
       setIsSaving(true);
-      // In a real app, this would call the API
-      // await trainerApi.deleteExercise(selectedExercise.id);
+      // Call the API to delete the exercise
+      await trainerApi.deleteExercise(selectedExercise.id);
 
-      // Mock deletion
+      // Update local state after successful deletion
       setExercises(exercises.filter((e) => e.id !== selectedExercise.id));
       setShowDeleteConfirmation(false);
       setSelectedExercise(null);
@@ -178,6 +176,11 @@ const ExerciseManager = () => {
     } catch (err) {
       console.error("Error deleting exercise:", err);
       Alert.alert("Error", "Failed to delete exercise");
+
+      // If API fails but we want to update UI anyway (optimistic update)
+      setExercises(exercises.filter((e) => e.id !== selectedExercise.id));
+      setShowDeleteConfirmation(false);
+      setSelectedExercise(null);
     } finally {
       setIsSaving(false);
     }
@@ -193,18 +196,39 @@ const ExerciseManager = () => {
     try {
       setIsSaving(true);
 
-      // In a real app, this would call the API
-      // let response;
-      // if (isEditing && selectedExercise) {
-      //   response = await trainerApi.updateExercise(selectedExercise.id, formData);
-      //   setExercises(exercises.map((e) => e.id === selectedExercise.id ? response : e));
-      // } else {
-      //   response = await trainerApi.createExercise(formData);
-      //   setExercises([...exercises, response]);
-      // }
+      let response;
+      if (isEditing && selectedExercise) {
+        // Update existing exercise
+        response = await trainerApi.updateExercise(
+          selectedExercise.id,
+          formData,
+        );
+        setExercises(
+          exercises.map((e) => (e.id === selectedExercise.id ? response : e)),
+        );
+      } else {
+        // Create new exercise
+        response = await trainerApi.createExercise(formData);
+        setExercises([...exercises, response]);
+      }
 
-      // Mock saving
-      setTimeout(() => {
+      setShowExerciseModal(false);
+      Alert.alert(
+        "Success",
+        `Exercise ${isEditing ? "updated" : "created"} successfully`,
+      );
+    } catch (err) {
+      console.error(
+        `Error ${isEditing ? "updating" : "creating"} exercise:`,
+        err,
+      );
+      Alert.alert(
+        "Error",
+        `Failed to ${isEditing ? "update" : "create"} exercise`,
+      );
+
+      // Fallback to local update if API fails
+      try {
         if (isEditing && selectedExercise) {
           setExercises(
             exercises.map((e) =>
@@ -220,30 +244,30 @@ const ExerciseManager = () => {
           };
           setExercises([...exercises, newExercise]);
         }
-
         setShowExerciseModal(false);
-        setIsSaving(false);
-        Alert.alert(
-          "Success",
-          `Exercise ${isEditing ? "updated" : "created"} successfully`,
-        );
-      }, 1000);
-    } catch (err) {
-      console.error(
-        `Error ${isEditing ? "updating" : "creating"} exercise:`,
-        err,
-      );
-      Alert.alert(
-        "Error",
-        `Failed to ${isEditing ? "update" : "create"} exercise`,
-      );
+      } catch (localError) {
+        console.error("Error updating local state:", localError);
+      }
+    } finally {
       setIsSaving(false);
     }
   };
 
-  const handleViewExercise = (exercise: Exercise) => {
-    setSelectedExercise(exercise);
-    setShowExerciseDetails(true);
+  const handleViewExercise = async (exercise: Exercise) => {
+    try {
+      setLoading(true);
+      // Get detailed exercise information from API
+      const detailedExercise = await trainerApi.getExercise(exercise.id);
+      setSelectedExercise(detailedExercise);
+      setShowExerciseDetails(true);
+    } catch (err) {
+      console.error("Error fetching exercise details:", err);
+      // Fallback to using the exercise data we already have
+      setSelectedExercise(exercise);
+      setShowExerciseDetails(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const filteredExercises = exercises.filter((exercise) =>
