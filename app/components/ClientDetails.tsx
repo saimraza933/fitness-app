@@ -9,7 +9,9 @@ import {
   Alert,
   Modal,
   ActivityIndicator,
+  Platform,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   ArrowLeft,
   User,
@@ -21,6 +23,7 @@ import {
   Circle,
   Edit2,
   Save,
+  CalendarDays,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
 
@@ -41,7 +44,10 @@ interface ClientDetailsProps {
 }
 
 const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
-  const [selectedPlan, setSelectedPlan] = useState("Full Body Strength");
+  const [selectedPlan, setSelectedPlan] = useState("");
+  const [selectedPlanId, setSelectedPlanId] = useState<string | number | null>(
+    null,
+  );
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({
     top: 0,
@@ -56,6 +62,11 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
     "Client is making good progress. Focus on improving squat form.",
   );
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+  // Date picker states
+  const [scheduledDate, setScheduledDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isAssigning, setIsAssigning] = useState(false);
 
   // Mock data for the client if not provided
   const clientData = client || {
@@ -77,20 +88,40 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
     const fetchWorkoutPlans = async () => {
       try {
         setLoadingPlans(true);
+        console.log("Fetching workout plans...");
         const plans = await trainerApi.getWorkoutPlans();
-        setWorkoutPlans(
-          plans.map((plan) => ({ id: plan.id, name: plan.name })),
-        );
+        console.log("Fetched workout plans:", plans);
+
+        if (plans && Array.isArray(plans)) {
+          const formattedPlans = plans.map((plan) => ({
+            id: plan.id,
+            name: plan.name,
+          }));
+          setWorkoutPlans(formattedPlans);
+
+          // If we have plans, set the first one as selected by default
+          if (formattedPlans.length > 0) {
+            setSelectedPlan(formattedPlans[0].name);
+          }
+        } else {
+          throw new Error("Invalid response format");
+        }
       } catch (error) {
         console.error("Error fetching workout plans:", error);
         // Fallback to mock data
-        setWorkoutPlans([
+        const mockPlans = [
           { id: "1", name: "Full Body Strength" },
           { id: "2", name: "Weight Loss Program" },
           { id: "3", name: "Cardio Focus" },
           { id: "4", name: "Muscle Building" },
           { id: "5", name: "Flexibility & Toning" },
-        ]);
+        ];
+        setWorkoutPlans(mockPlans);
+
+        // Set the first mock plan as selected
+        if (selectedPlan === "") {
+          setSelectedPlan(mockPlans[0].name);
+        }
       } finally {
         setLoadingPlans(false);
       }
@@ -146,24 +177,80 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
     console.log(`Toggling goal completion for ${id}`);
   };
 
+  // Format date for display
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  // Handle date change
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || scheduledDate;
+    setShowDatePicker(Platform.OS === "ios");
+    setScheduledDate(currentDate);
+  };
+
+  // Format date for API
+  const formatDateForApi = (date: Date): string => {
+    return date.toISOString().split("T")[0]; // YYYY-MM-DD format
+  };
+
   const assignPlan = async () => {
     try {
-      // In a real app, this would save the selected plan to the backend
+      if (!selectedPlanId) {
+        Alert.alert("Error", "Please select a workout plan first.");
+        return;
+      }
+
+      // Validate scheduled date
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (scheduledDate < today) {
+        Alert.alert("Error", "Please select a date today or in the future.");
+        return;
+      }
+
+      setIsAssigning(true);
+
+      // Format date for API
+      const formattedDate = formatDateForApi(scheduledDate);
+
       console.log(
-        `Assigning plan: ${selectedPlan} to client ID: ${clientData.id}`,
+        `Assigning plan: ${selectedPlan} (ID: ${selectedPlanId}) to client ID: ${clientData.id} on date: ${formattedDate}`,
       );
 
-      // Here you would make an API call to assign the plan to the client
-      // For example: await trainerApi.assignPlanToClient(clientData.id, selectedPlanId);
+      // Call the API to assign the workout plan with scheduled date
+      try {
+        const response = await trainerApi.assignClientWorkout(
+          clientData.id,
+          selectedPlanId,
+          formattedDate,
+        );
 
-      setShowPlanDropdown(false);
-      Alert.alert(
-        "Success",
-        `${selectedPlan} has been assigned to ${clientData.name}`,
-      );
+        console.log("Assignment successful:", response);
+
+        setShowPlanDropdown(false);
+        Alert.alert(
+          "Success",
+          `${selectedPlan} has been scheduled for ${clientData.name} on ${formatDate(scheduledDate)}`,
+        );
+      } catch (apiError) {
+        console.error("API error:", apiError);
+        Alert.alert(
+          "Error",
+          "Failed to assign workout plan. Please try again.",
+        );
+      }
     } catch (error) {
       console.error("Error assigning plan:", error);
       Alert.alert("Error", "Failed to assign workout plan. Please try again.");
+    } finally {
+      setIsAssigning(false);
     }
   };
 
@@ -267,7 +354,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
 
             <View>
               <TouchableOpacity
-                className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
+                className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white mb-3"
                 onPress={(event) => {
                   const target = event.target as any;
                   target.measure((x, y, width, height, pageX, pageY) => {
@@ -280,9 +367,49 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                   });
                 }}
               >
-                <Text className="text-gray-800">{selectedPlan}</Text>
+                <Text className="text-gray-800">
+                  {loadingPlans
+                    ? "Loading plans..."
+                    : selectedPlan || "Select a workout plan"}
+                </Text>
                 <ChevronDown size={20} color="#9ca3af" />
               </TouchableOpacity>
+
+              {/* Schedule Date Selector */}
+              <View className="mb-3">
+                <Text className="text-gray-700 mb-2 font-medium">
+                  Schedule Date
+                </Text>
+                <TouchableOpacity
+                  className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
+                  onPress={() => setShowDatePicker(true)}
+                >
+                  <Text className="text-gray-800">
+                    {formatDate(scheduledDate)}
+                  </Text>
+                  <CalendarDays size={20} color="#9ca3af" />
+                </TouchableOpacity>
+
+                {showDatePicker && (
+                  <View className="bg-white p-2 rounded-lg mt-2">
+                    <DateTimePicker
+                      value={scheduledDate}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      onChange={onDateChange}
+                      minimumDate={new Date()}
+                    />
+                    {Platform.OS === "ios" && (
+                      <TouchableOpacity
+                        className="bg-pink-600 py-2 px-4 rounded-lg self-end mt-2"
+                        onPress={() => setShowDatePicker(false)}
+                      >
+                        <Text className="text-white font-medium">Done</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
 
               <Modal
                 visible={showPlanDropdown}
@@ -320,6 +447,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                           className={`p-3 border-b border-gray-100 ${plan.name === selectedPlan ? "bg-pink-50" : ""}`}
                           onPress={() => {
                             setSelectedPlan(plan.name);
+                            setSelectedPlanId(plan.id);
                             setShowPlanDropdown(false);
                           }}
                         >
@@ -337,10 +465,17 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
             </View>
 
             <TouchableOpacity
-              className="bg-pink-600 py-2 rounded-lg items-center mt-3"
+              className={`bg-pink-600 py-2 rounded-lg items-center mt-3 ${!selectedPlan || loadingPlans || isAssigning ? "opacity-50" : ""}`}
               onPress={assignPlan}
+              disabled={!selectedPlan || loadingPlans || isAssigning}
             >
-              <Text className="text-white font-medium">Assign Plan</Text>
+              <Text className="text-white font-medium">
+                {loadingPlans
+                  ? "Loading..."
+                  : isAssigning
+                    ? "Assigning..."
+                    : "Assign Plan"}
+              </Text>
             </TouchableOpacity>
           </View>
 

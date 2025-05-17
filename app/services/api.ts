@@ -183,6 +183,31 @@ export const trainerApi = {
     }
   },
 
+  // Assign workout plan to client with scheduled date
+  assignClientWorkout: async (
+    clientId: number | string,
+    workoutPlanId: number | string,
+    scheduledDate: string,
+  ) => {
+    try {
+      const response = await api.post(
+        `/clients/${clientId}/workout-assignments`,
+        {
+          workoutPlanId,
+          scheduledDate,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error assigning workout to client:", error);
+      if (error.response) {
+        console.error("Response data:", error.response.data);
+        console.error("Response status:", error.response.status);
+      }
+      throw error;
+    }
+  },
+
   // Update client-trainer relationship status
   updateClientTrainerRelationship: async (
     relationshipId: number | string,
