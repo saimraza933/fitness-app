@@ -49,11 +49,19 @@ interface ProfileData {
   password?: string;
 }
 
+const capitalizeFirstLetter = (str: any) => {
+  if (!str) return '';
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+
 const ProfileScreen = () => {
   const dispatch = useAppDispatch();
   const { userRole } = useAppSelector((state) => state.auth);
   const { profile, isLoading } = useAppSelector((state) => state.user);
+  console.log(profile)
   const router = useRouter();
+  const [isProfileUpdating, setIsProfileUpdating] = useState(false)
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -66,11 +74,12 @@ const ProfileScreen = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [isPasswordUpdating, setIsPasswordUpdating] = useState(false)
 
   // Local state to track profile data while editing
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
-    age: "",
+    age: '',
     weight: "",
     height: "",
     goal: "",
@@ -87,11 +96,13 @@ const ProfileScreen = () => {
   // Update local state when profile data changes
   useEffect(() => {
     if (profile) {
-      setProfileData(profile);
+      const profilePicture = `https://fitness.pixelgateltd.com/${profile?.profilePicture}`
+      setProfileData({ ...profile, profilePicture, age: String(profile?.age) });
     }
   }, [profile]);
 
   const saveProfileData = async () => {
+    setIsProfileUpdating(true)
     try {
       // Format data for API
       const apiProfileData = {
@@ -105,13 +116,13 @@ const ProfileScreen = () => {
         // Don't include profile_picture here as we're not changing it
       };
 
-      try {
-        // Update profile via API directly
-        await profileApi.updateProfile(apiProfileData);
-      } catch (apiError) {
-        console.log("API error when saving profile", apiError);
-        // Continue with local update even if API fails
-      }
+      // try {
+      //   // Update profile via API directly
+      //   await profileApi.updateProfile(apiProfileData);
+      // } catch (apiError) {
+      //   console.log("API error when saving profile", apiError);
+      //   // Continue with local update even if API fails
+      // }
 
       // Update Redux state
       await dispatch(saveUserProfile(profileData));
@@ -120,6 +131,8 @@ const ProfileScreen = () => {
     } catch (error) {
       console.error("Error saving profile data:", error);
       Alert.alert("Error", "Failed to save profile data");
+    } finally {
+      setIsProfileUpdating(false)
     }
   };
 
@@ -253,7 +266,7 @@ const ProfileScreen = () => {
       setPasswordError("New passwords don't match");
       return;
     }
-
+    setIsPasswordUpdating(true)
     try {
       // Call the API to change password
       const resultAction = await dispatch(
@@ -280,6 +293,8 @@ const ProfileScreen = () => {
     } catch (error: any) {
       console.error("Error changing password:", error);
       setPasswordError(error.message || "An error occurred. Please try again.");
+    } finally {
+      setIsPasswordUpdating(true)
     }
   };
 
@@ -324,6 +339,7 @@ const ProfileScreen = () => {
                 <ActivityIndicator size="large" color="#be185d" />
               </View>
             ) : (
+              // 'https://fitness.pixelgateltd.com/' + 
               <Image
                 source={{
                   uri:
@@ -382,7 +398,7 @@ const ProfileScreen = () => {
         <Text className="text-2xl font-bold text-white mt-3">
           {profileData.name}
         </Text>
-        <Text className="text-pink-200">{userRole} account</Text>
+        <Text className="text-pink-200">{capitalizeFirstLetter(userRole)} Account</Text>
       </View>
 
       <View className="p-4">
@@ -392,11 +408,26 @@ const ProfileScreen = () => {
           </Text>
           {isEditing ? (
             <TouchableOpacity
+              disabled={isProfileUpdating}
               onPress={saveProfileData}
-              className="flex-row items-center bg-pink-600 px-3 py-2 rounded-lg"
+              className={`bg-pink-600 px-3 py-2  rounded-lg flex-row items-center ${isProfileUpdating ? "opacity-70" : ""}`}
+            // className={!isProfileUpdating ? `flex-row items-center bg-slate-500  px-3 py-2 rounded-lg` : `flex-row items-center bg-pink-600  px-3 py-2 rounded-lg`}
+
             >
-              <Save size={16} color="white" />
-              <Text className="text-white ml-1 font-medium">Save</Text>
+              {
+                isProfileUpdating ? <>
+                  <ActivityIndicator size="small" color="white" />
+                  <Text className="text-white font-medium ml-2">
+                    Saving...
+                  </Text>
+                </> : <>
+                  <Save size={16} color="white" />
+                  <Text className="text-white ml-1 font-medium">
+                    Save
+                  </Text>
+                </>
+              }
+
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
@@ -434,10 +465,11 @@ const ProfileScreen = () => {
                 <TextInput
                   className="border border-gray-300 rounded-lg p-2 text-gray-800"
                   value={profileData.age}
-                  keyboardType="numeric"
-                  onChangeText={(text) =>
+                  // keyboardType="numeric"
+                  onChangeText={(text) => {
+                    console.log('age', text)
                     setProfileData({ ...profileData, age: text })
-                  }
+                  }}
                 />
               ) : (
                 <Text className="text-gray-800 font-medium">
@@ -567,9 +599,7 @@ const ProfileScreen = () => {
                               testID="dateTimePicker"
                               value={(() => {
                                 const [hours, minutes] =
-                                  profileData.notificationTime
-                                    .split(":")
-                                    .map(Number);
+                                  profileData?.notificationTime?.split(":").map(Number);
                                 const date = new Date();
                                 date.setHours(hours);
                                 date.setMinutes(minutes);
@@ -610,10 +640,7 @@ const ProfileScreen = () => {
                             <DateTimePicker
                               testID="dateTimePicker"
                               value={(() => {
-                                const [hours, minutes] =
-                                  profileData.notificationTime
-                                    .split(":")
-                                    .map(Number);
+                                const [hours, minutes] = profileData?.notificationTime?.split(":").map(Number);
                                 const date = new Date();
                                 date.setHours(hours);
                                 date.setMinutes(minutes);
@@ -763,15 +790,20 @@ const ProfileScreen = () => {
                   setConfirmPassword("");
                   setPasswordError("");
                 }}
+                disabled={isPasswordUpdating}
               >
                 <Text className="text-gray-800 font-medium">Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className="bg-pink-600 py-2 px-4 rounded-lg"
+                className={`bg-pink-600 py-2 px-4 rounded-lg flex-row items-center ${isPasswordUpdating ? "opacity-70" : ""}`}
+                // className="bg-pink-600 py-2 px-4 rounded-lg"
                 onPress={handleChangePassword}
+                disabled={isPasswordUpdating}
               >
-                <Text className="text-white font-medium">Update Password</Text>
+                {isPasswordUpdating && <ActivityIndicator size="small" color="white" />}
+
+                <Text className="text-white font-medium"> {isPasswordUpdating ? "Updating..." : "Update Password"}</Text>
               </TouchableOpacity>
             </View>
           </View>

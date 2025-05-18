@@ -22,6 +22,7 @@ import {
   Save,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Exercise {
   id: string | number;
@@ -92,9 +93,15 @@ const WorkoutPlanManager = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await trainerApi.getWorkoutPlans();
-      console.log("Fetched workout plans:", data);
-      setWorkoutPlans(data);
+      const trainerId = await AsyncStorage.getItem('user_id');
+
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
+      }
+      const parsedTrainerId = parseInt(trainerId, 10);
+
+      const data = await trainerApi.getWorkoutPlansByTrainer(parsedTrainerId);
+      setWorkoutPlans([data]);
     } catch (err) {
       console.error("Error fetching workout plans:", err);
       setError("Failed to load workout plans. Please try again.");
@@ -151,7 +158,6 @@ const WorkoutPlanManager = () => {
     try {
       setLoading(true);
       const data = await trainerApi.getWorkoutPlan(planId);
-      console.log("Fetched plan details:", data);
       setSelectedPlan(data);
       setShowPlanDetails(true);
     } catch (err) {
@@ -217,16 +223,27 @@ const WorkoutPlanManager = () => {
   const fetchExercises = async () => {
     try {
       setLoadingExercises(true);
+
+      const trainerId = await AsyncStorage.getItem('user_id');
+
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
+      }
+      const parsedTrainerId = parseInt(trainerId, 10);
+      console.log(parsedTrainerId)
       // Call the API to get exercises
-      const data = await trainerApi.getExercises();
+      const data = await trainerApi.getExercisesByTrainer(parsedTrainerId);
+      console.log("exercises new", data)
+      // Call the API to get exercises
+      // const data = await trainerApi.getExercises();
 
       // Transform the data to match our Exercise interface if needed
-      const formattedExercises = data.map((exercise) => ({
+      const formattedExercises = [data].map((exercise: any) => ({
         id: exercise.id,
         name: exercise.name,
-        sets: exercise.default_sets || 3,
-        reps: exercise.default_reps || 10,
-        imageUrl: exercise.imageUrl || exercise.image_url,
+        sets: exercise?.default_sets || 3,
+        reps: exercise?.default_reps || 10,
+        imageUrl: exercise.imageUrl || exercise.imageUrl,
         instructions: exercise.instructions,
       }));
 
@@ -236,58 +253,58 @@ const WorkoutPlanManager = () => {
       console.error("Error fetching exercises:", err);
 
       // Fallback to mock data if API fails
-      setAvailableExercises([
-        {
-          id: "1",
-          name: "Squats",
-          sets: 3,
-          reps: 15,
-          imageUrl:
-            "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
-          instructions:
-            "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
-        },
-        {
-          id: "2",
-          name: "Push-ups",
-          sets: 3,
-          reps: 10,
-          imageUrl:
-            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
-          instructions:
-            "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
-        },
-        {
-          id: "3",
-          name: "Lunges",
-          sets: 3,
-          reps: 12,
-          imageUrl:
-            "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
-          instructions:
-            "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
-        },
-        {
-          id: "4",
-          name: "Plank",
-          sets: 3,
-          reps: 30,
-          imageUrl:
-            "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
-          instructions:
-            "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
-        },
-        {
-          id: "5",
-          name: "Deadlift",
-          sets: 3,
-          reps: 8,
-          imageUrl:
-            "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-          instructions:
-            "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
-        },
-      ]);
+      // setAvailableExercises([
+      //   {
+      //     id: "1",
+      //     name: "Squats",
+      //     sets: 3,
+      //     reps: 15,
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
+      //     instructions:
+      //       "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
+      //   },
+      //   {
+      //     id: "2",
+      //     name: "Push-ups",
+      //     sets: 3,
+      //     reps: 10,
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
+      //     instructions:
+      //       "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
+      //   },
+      //   {
+      //     id: "3",
+      //     name: "Lunges",
+      //     sets: 3,
+      //     reps: 12,
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+      //     instructions:
+      //       "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
+      //   },
+      //   {
+      //     id: "4",
+      //     name: "Plank",
+      //     sets: 3,
+      //     reps: 30,
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
+      //     instructions:
+      //       "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
+      //   },
+      //   {
+      //     id: "5",
+      //     name: "Deadlift",
+      //     sets: 3,
+      //     reps: 8,
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
+      //     instructions:
+      //       "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
+      //   },
+      // ]);
       setLoadingExercises(false);
     }
   };
@@ -309,19 +326,16 @@ const WorkoutPlanManager = () => {
     setIsEditing(true);
 
     // Ensure exercises are properly formatted
-    const formattedExercises = plan.exercises
+    const formattedExercises = plan?.exercises
       ? plan.exercises.map((exercise) => ({
-          id: exercise.id,
-          name: exercise.name,
-          sets: exercise.sets || 3,
-          reps: exercise.reps || 10,
-          imageUrl: exercise.imageUrl,
-          instructions: exercise.instructions,
-        }))
+        id: exercise.id,
+        name: exercise.name,
+        sets: exercise.sets || 3,
+        reps: exercise.reps || 10,
+        imageUrl: exercise.imageUrl,
+        instructions: exercise.instructions,
+      }))
       : [];
-
-    console.log("Editing plan with exercises:", formattedExercises);
-
     setFormData({
       name: plan.name,
       description: plan.description,
@@ -393,10 +407,17 @@ const WorkoutPlanManager = () => {
       );
       return;
     }
+    const trainerId = await AsyncStorage.getItem('user_id');
+
+    if (trainerId === null) {
+      throw new Error('Trainer ID not found in storage');
+    }
+    const parsedTrainerId = parseInt(trainerId, 10);
 
     try {
       setIsSaving(true);
       const planData = {
+        createdBy: parsedTrainerId,
         name: formData.name,
         description: formData.description,
         difficulty: formData.difficulty,
@@ -415,17 +436,13 @@ const WorkoutPlanManager = () => {
           selectedPlan.id,
           planData,
         );
-        setWorkoutPlans(
-          workoutPlans.map((p) =>
-            p.id === selectedPlan.id ? { ...response } : p,
-          ),
-        );
+
       } else {
         response = await trainerApi.createWorkoutPlan(planData);
-        setWorkoutPlans([...workoutPlans, response]);
       }
 
       setShowPlanModal(false);
+      fetchWorkoutPlans()
       Alert.alert(
         "Success",
         `Workout plan ${isEditing ? "updated" : "created"} successfully`,

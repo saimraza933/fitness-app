@@ -82,10 +82,11 @@ export const login = createAsyncThunk(
 
       // Call the API
       const response = await authApi.login(email, password);
+      console.log("response", response);
 
       // Store auth data in AsyncStorage
       await AsyncStorage.setItem("auth_token", response.token);
-      await AsyncStorage.setItem("user_id", response.id);
+      await AsyncStorage.setItem("user_id", String(response.id));
       await AsyncStorage.setItem("user_email", response.email);
       await AsyncStorage.setItem("user_role", response.role);
       await AsyncStorage.setItem("is_logged_in", "true");
@@ -163,7 +164,7 @@ export const signup = createAsyncThunk(
 
       // Store auth data in AsyncStorage
       await AsyncStorage.setItem("auth_token", response.token);
-      await AsyncStorage.setItem("user_id", response.id);
+      await AsyncStorage.setItem("user_id", String(response.id));
       await AsyncStorage.setItem("user_email", response.email);
       await AsyncStorage.setItem("user_role", response.role);
       await AsyncStorage.setItem("is_logged_in", "true");

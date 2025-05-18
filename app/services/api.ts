@@ -119,6 +119,14 @@ export const profileApi = {
   },
 };
 
+export const clientApi = {
+  savedailyWeightsLogs: async (trainerId: number, weight: number, date: any, clientId: number) => {
+    const response = await api.post(`/clients/${clientId}/weight-logs`, { trainerId, weight, date });
+    return response.data;
+  },
+};
+
+
 export const trainerApi = {
   // Get all trainers
   getTrainers: async () => {
@@ -131,6 +139,17 @@ export const trainerApi = {
     const response = await api.get("/clients");
     return response.data;
   },
+
+  getClientsByTrainer: async (trainerId: number) => {
+    const response = await api.get(`/getClientsByTrainer/${trainerId}`);
+    return response.data;
+  },
+
+  getNotAssignedClients: async () => {
+    const response = await api.get(`/getClientsByWithoutTrainer`);
+    return response.data;
+  },
+
 
   // Get all available clients (not assigned to this trainer)
   getAvailableClients: async () => {
@@ -149,6 +168,17 @@ export const trainerApi = {
     return response.data;
   },
 
+  getClientsWeeklyGoals: async (clientId: number) => {
+    const response = await api.get(`/clients/${clientId}/weekly-goals`);
+    return response.data;
+  },
+
+  getClientsWeightsLogs: async (clientId: number) => {
+    const response = await api.get(`/clients/${clientId}/weight-logs`);
+    return response.data;
+  },
+
+
   // Update client notes
   updateClientNotes: async (clientId: number | string, notes: string) => {
     const response = await api.put(`/clients/${clientId}/notes`, { notes });
@@ -159,6 +189,7 @@ export const trainerApi = {
   assignClientToTrainer: async (
     clientId: number | string,
     trainerId: number | string,
+    status: string
   ) => {
     console.log("Sending POST request to /client-trainer-relationships with:", {
       client_id: clientId,
@@ -188,6 +219,7 @@ export const trainerApi = {
     clientId: number | string,
     workoutPlanId: number | string,
     scheduledDate: string,
+    assignedBy: number,
   ) => {
     try {
       const response = await api.post(
@@ -195,6 +227,7 @@ export const trainerApi = {
         {
           workoutPlanId,
           scheduledDate,
+          assignedBy
         },
       );
       return response.data;
@@ -203,6 +236,49 @@ export const trainerApi = {
       if (error.response) {
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);
+      }
+      throw error;
+    }
+  },
+
+  assignClientWeeklyGoal: async (
+    client_id: number,
+    created_by: any,
+    title: string,
+    week_start_date: any
+  ) => {
+    try {
+      const response = await api.post(
+        `/clients/${client_id}/weekly-goals`,
+        {
+          created_by,
+          title,
+          week_start_date
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error assigning weekly goal to client:", error);
+      if (error?.response) {
+        console.error("Response data:", error?.response.data);
+        console.error("Response status:", error?.response.status);
+      }
+      throw error;
+    }
+  },
+
+  updateClientWeeklyGoal: async ({ id, ...data }: any) => {
+    try {
+      const response = await api.put(
+        `/clients/${data?.client_id}/weekly-goals/${id}`,
+        data,
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error("Error updating weekly goal to client:", error);
+      if (error?.response) {
+        console.error("Response data:", error?.response.data);
+        console.error("Response status:", error?.response.status);
       }
       throw error;
     }
@@ -223,6 +299,11 @@ export const trainerApi = {
   // Workout Plan APIs
   getWorkoutPlans: async () => {
     const response = await api.get("/workout-plans");
+    return response.data;
+  },
+
+  getWorkoutPlansByTrainer: async (trainerId: number) => {
+    const response = await api.get(`/workout-plans/trainer/${trainerId}`);
     return response.data;
   },
 
@@ -269,6 +350,14 @@ export const trainerApi = {
     return response.data;
   },
 
+  // Exercise APIs
+  getExercisesByTrainer: async (trainerId: number) => {
+    const response = await api.get(`/exercises/getExerciseByTrainer/${trainerId}`);
+    return response.data;
+  },
+
+
+
   getExercise: async (exerciseId: number | string) => {
     const response = await api.get(`/exercises/${exerciseId}`);
     return response.data;
@@ -279,6 +368,7 @@ export const trainerApi = {
     description: string;
     imageUrl?: string;
     instructions: string;
+    created_by: number
   }) => {
     const response = await api.post("/exercises", exerciseData);
     return response.data;
@@ -291,6 +381,7 @@ export const trainerApi = {
       description: string;
       imageUrl?: string;
       instructions: string;
+      created_by: number
     },
   ) => {
     const response = await api.put(`/exercises/${exerciseId}`, exerciseData);

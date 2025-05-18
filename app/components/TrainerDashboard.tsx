@@ -45,6 +45,7 @@ interface TrainerDashboardProps {
 }
 
 const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
+
   const [searchQuery, setSearchQuery] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +54,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
   const [availableClients, setAvailableClients] = useState<
     { id: string | number; name: string }[]
   >([]);
+
   const [selectedClientId, setSelectedClientId] = useState<
     string | number | null
   >(null);
@@ -72,32 +74,69 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   }, [showAddClientModal]);
 
+  // const fetchAvailableClients = async () => {
+  //   try {
+  //     setIsAssigning(false);
+  //     setSelectedClientId(null);
+
+  //     // Fetch all available clients that aren't already assigned to this trainer
+  //     const response = await trainerApi.getAvailableClients();
+  //     console.log("available clinets", response)
+  //     // If API call fails, use mock data
+  //     if (!response || !Array.isArray(response)) {
+  //       setAvailableClients([
+  //         { id: "101", name: "Emma Wilson" },
+  //         { id: "102", name: "Olivia Martinez" },
+  //         { id: "103", name: "Sophia Thompson" },
+  //         { id: "104", name: "Isabella Garcia" },
+  //         { id: "105", name: "Mia Rodriguez" },
+  //       ]);
+  //       return;
+  //     }
+
+  //     setAvailableClients(
+  //       response.map((client) => ({
+  //         id: client.id,
+  //         name: client.name,
+  //       })),
+  //     );
+  //   } catch (err) {
+  //     console.error("Error fetching available clients:", err);
+  //     // Fallback to mock data
+  //     setAvailableClients([
+  //       { id: "101", name: "Emma Wilson" },
+  //       { id: "102", name: "Olivia Martinez" },
+  //       { id: "103", name: "Sophia Thompson" },
+  //       { id: "104", name: "Isabella Garcia" },
+  //       { id: "105", name: "Mia Rodriguez" },
+  //     ]);
+  //   }
+  // };
+
   const fetchAvailableClients = async () => {
     try {
       setIsAssigning(false);
       setSelectedClientId(null);
-
       // Fetch all available clients that aren't already assigned to this trainer
-      const response = await trainerApi.getAvailableClients();
-
+      const response = await trainerApi.getNotAssignedClients();
       // If API call fails, use mock data
-      if (!response || !Array.isArray(response)) {
-        setAvailableClients([
-          { id: "101", name: "Emma Wilson" },
-          { id: "102", name: "Olivia Martinez" },
-          { id: "103", name: "Sophia Thompson" },
-          { id: "104", name: "Isabella Garcia" },
-          { id: "105", name: "Mia Rodriguez" },
-        ]);
-        return;
-      }
+      // if (!response || !Array.isArray(response)) {
+      //   setAvailableClients([
+      //     { id: "101", name: "Emma Wilson" },
+      //     { id: "102", name: "Olivia Martinez" },
+      //     { id: "103", name: "Sophia Thompson" },
+      //     { id: "104", name: "Isabella Garcia" },
+      //     { id: "105", name: "Mia Rodriguez" },
+      //   ]);
+      //   return;
+      // }
 
-      setAvailableClients(
-        response.map((client) => ({
-          id: client.id,
-          name: client.name,
-        })),
-      );
+      // setAvailableClients(
+      //   response.map((client: any) => ({
+      //     id: client?.client?.profile?.id,
+      //     name: client?.client?.profile?.name,
+      //   })),
+      // );
     } catch (err) {
       console.error("Error fetching available clients:", err);
       // Fallback to mock data
@@ -141,6 +180,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
         const response = await trainerApi.assignClientToTrainer(
           selectedClientId,
           trainerId,
+          'assigned'
         );
         console.log("API response:", response);
       } catch (apiError) {
@@ -161,27 +201,138 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   };
 
+  // const fetchClients = async () => {
+  //   try {
+  //     setLoading(true);
+  //     setError(null);
+  //     const clientsData = await trainerApi.getClients();
+  //     // Transform API data to match the component's expected format
+  //     const formattedClients = clientsData.map((client: any) => ({
+  //       id: client.id,
+  //       name: client.name,
+  //       status: client.status || "active",
+  //       lastActive: formatDate(client.last_active) || "Today",
+  //       progress: client.progress || 0,
+  //       nextWorkout: "Today", // Default value as API doesn't provide this
+  //       weight: client.weight ? `${client.weight} lbs` : "Not recorded",
+  //       plan: client.plan || "Not assigned",
+  //       profilePicture:
+  //         client.profile_picture ||
+  //         `https://api.dicebear.com/7.x/avataaars/svg?seed=${client.name}&backgroundColor=ffdfbf`,
+  //     }));
+
+  //     setClients(formattedClients);
+  //   } catch (err) {
+  //     console.error("Error fetching clients:", err);
+  //     setError("Failed to load clients. Please try again.");
+  //     // Fallback to mock data if API fails
+  //     setClients([
+  //       {
+  //         id: "1",
+  //         name: "Sarah Johnson",
+  //         status: "active",
+  //         lastActive: "Today",
+  //         progress: 85,
+  //         nextWorkout: "Today",
+  //         weight: "145 lbs",
+  //         plan: "Full Body Strength",
+  //         profilePicture:
+  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
+  //       },
+  //       {
+  //         id: "2",
+  //         name: "Emily Davis",
+  //         status: "active",
+  //         lastActive: "Yesterday",
+  //         progress: 70,
+  //         nextWorkout: "Tomorrow",
+  //         weight: "132 lbs",
+  //         plan: "Weight Loss Program",
+  //         profilePicture:
+  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
+  //       },
+  //       {
+  //         id: "3",
+  //         name: "Jessica Wilson",
+  //         status: "pending",
+  //         lastActive: "3 days ago",
+  //         progress: 50,
+  //         nextWorkout: "Today",
+  //         weight: "158 lbs",
+  //         plan: "Cardio Focus",
+  //         profilePicture:
+  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
+  //       },
+  //       {
+  //         id: "4",
+  //         name: "Amanda Brown",
+  //         status: "inactive",
+  //         lastActive: "1 week ago",
+  //         progress: 30,
+  //         nextWorkout: "Not scheduled",
+  //         weight: "140 lbs",
+  //         plan: "Not assigned",
+  //         profilePicture:
+  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
+  //       },
+  //       {
+  //         id: "5",
+  //         name: "Michelle Lee",
+  //         status: "active",
+  //         lastActive: "Today",
+  //         progress: 90,
+  //         nextWorkout: "Tomorrow",
+  //         weight: "125 lbs",
+  //         plan: "Flexibility & Toning",
+  //         profilePicture:
+  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
+  //       },
+  //       {
+  //         id: "6",
+  //         name: "Rachel Taylor",
+  //         status: "active",
+  //         lastActive: "Today",
+  //         progress: 75,
+  //         nextWorkout: "Today",
+  //         weight: "138 lbs",
+  //         plan: "Muscle Building",
+  //         profilePicture:
+  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
+  //       },
+  //     ]);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const fetchClients = async () => {
     try {
       setLoading(true);
       setError(null);
-      const clientsData = await trainerApi.getClients();
+      const trainerId = await AsyncStorage.getItem('user_id');
 
-      // Transform API data to match the component's expected format
-      const formattedClients = clientsData.map((client: any) => ({
-        id: client.id,
-        name: client.name,
-        status: client.status || "active",
-        lastActive: formatDate(client.last_active) || "Today",
-        progress: client.progress || 0,
-        nextWorkout: "Today", // Default value as API doesn't provide this
-        weight: client.weight ? `${client.weight} lbs` : "Not recorded",
-        plan: client.plan || "Not assigned",
-        profilePicture:
-          client.profile_picture ||
-          `https://api.dicebear.com/7.x/avataaars/svg?seed=${client.name}&backgroundColor=ffdfbf`,
-      }));
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
+      }
 
+      const parsedTrainerId = parseInt(trainerId, 10);
+      const clientsData = await trainerApi.getClientsByTrainer(parsedTrainerId);
+      const formattedClients = clientsData?.map((client: any) => {
+        const clientObj = client?.client
+        return {
+          id: clientObj?.id,
+          name: clientObj?.profile?.name,
+          status: client?.status || "active",
+          lastActive: formatDate(client?.last_active) || "Today",
+          progress: client?.progress || 0,
+          nextWorkout: "Today",
+          weight: clientObj?.profile?.weight ? `${clientObj?.profile?.weight} lbs` : "Not recorded",
+          plan: clientObj?.plan || "Not assigned",
+          profilePicture:
+            clientObj?.profile?.profile_picture_url ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${clientObj?.profile?.name}&backgroundColor=ffdfbf`,
+        }
+      })
       setClients(formattedClients);
     } catch (err) {
       console.error("Error fetching clients:", err);
@@ -302,8 +453,8 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   };
 
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()),
+  const filteredClients = clients?.filter((client) =>
+    client?.name?.toLowerCase().includes(searchQuery?.toLowerCase()),
   );
 
   const getStatusIcon = (status: string) => {
@@ -328,21 +479,21 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
         // Transform API response to match expected format
         const clientWithDetails = {
           ...client,
-          id: clientDetails.id,
-          name: clientDetails.name,
-          age: clientDetails.age?.toString() || "Unknown",
-          weight: clientDetails.weight ? `${clientDetails.weight}` : "Unknown",
-          height: clientDetails.height || "Unknown",
-          goal: clientDetails.goal || "No goal set",
+          id: clientDetails?.id,
+          name: clientDetails?.name,
+          age: clientDetails?.age?.toString() || "Unknown",
+          weight: clientDetails?.weight ? `${clientDetails?.weight}` : "Unknown",
+          height: clientDetails?.height || "Unknown",
+          goal: clientDetails?.goal || "No goal set",
           email:
-            clientDetails.email ||
-            `${client.name.toLowerCase().replace(" ", ".")}@example.com`,
-          phone: clientDetails.phone || "Not provided",
-          joinDate: formatDate(clientDetails.join_date) || "Unknown",
+            clientDetails?.email ||
+            `${client?.name?.toLowerCase().replace(" ", ".")}@example.com`,
+          phone: clientDetails?.phone || "Not provided",
+          joinDate: formatDate(clientDetails?.join_date) || "Unknown",
           profilePicture:
-            clientDetails.profile_picture || client.profilePicture,
-          notes: clientDetails.notes,
-          assignedPlan: clientDetails.assigned_plan,
+            clientDetails?.profile_picture || client?.profilePicture,
+          notes: clientDetails?.notes,
+          assignedPlan: clientDetails?.assigned_plan,
         };
 
         onClientSelect(clientWithDetails);
@@ -354,7 +505,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
           age: "Unknown",
           height: "Unknown",
           goal: "Unknown",
-          email: `${client.name.toLowerCase().replace(" ", ".")}@example.com`,
+          email: `${client?.name?.toLowerCase().replace(" ", ".")}@example.com`,
           phone: "Not available",
           joinDate: "Unknown",
         };
@@ -460,7 +611,8 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
             <View className="bg-white p-3 rounded-xl shadow-sm flex-1 ml-2 items-center">
               <Text className="text-gray-500 text-sm">Inactive</Text>
               <Text className="text-2xl font-bold text-red-600">
-                {clients.filter((c) => c.status === "inactive").length}
+                {/* {clients.filter((c) => c.status === "inactive").length} */}
+                {clients.filter((c) => c.status === "pending").length}
               </Text>
             </View>
           </View>
@@ -476,9 +628,9 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
           </View>
 
           <ScrollView className="flex-1">
-            {filteredClients.map((client) => (
+            {filteredClients.map((client, index) => (
               <TouchableOpacity
-                key={client.id}
+                key={index}
                 className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
                 onPress={() => handleClientPress(client)}
               >
