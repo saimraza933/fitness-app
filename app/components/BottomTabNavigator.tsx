@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
 import { useAppSelector } from "../hooks/redux";
 import ClientHome from "./ClientHome";
 import ProgressSection from "./ProgressSection";
@@ -9,6 +9,9 @@ import MyPlan from "./MyPlan";
 import ProfileScreen from "./ProfileScreen";
 import TrainerDashboard from "./TrainerDashboard";
 import ClientDetails from "./ClientDetails";
+import ClientProgressSection from "./ClientProgressSection";
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from "expo-status-bar";
 
 // Tab item component defined outside the main component
 interface TabItemProps {
@@ -61,6 +64,7 @@ const BottomTabNavigator = ({
   const [localUserRole, setLocalUserRole] = useState<string | null>(null);
   // Define hideTabBarState to handle tab bar visibility internally
   const [hideTabBarState, setHideTabBarState] = useState(hideTabBar);
+  const insets = useSafeAreaInsets();
 
   // Use effect to capture the userRole when it changes
   useEffect(() => {
@@ -100,7 +104,7 @@ const BottomTabNavigator = ({
           return <MyPlan />;
         case "Progress":
           return (
-            <ProgressSection
+            <ClientProgressSection
               onClientSelect={setSelectedProgressClient}
               selectedClient={selectedProgressClient}
               onClientDetailsView={(isViewing) => setHideTabBarState(isViewing)}
@@ -144,7 +148,7 @@ const BottomTabNavigator = ({
     }
 
     // If we're still here and no role is detected, force trainer view for testing
-    console.log("No user role detected, forcing trainer view");
+    // console.log("No user role detected, forcing trainer view");
     return <TrainerDashboard onClientSelect={setSelectedClient} />;
   };
 
@@ -153,7 +157,7 @@ const BottomTabNavigator = ({
     // Use localUserRole if available, otherwise fall back to userRole from context
     const effectiveRole = localUserRole || userRole;
 
-    console.log("Getting tab config for role:", effectiveRole);
+    // console.log("Getting tab config for role:", effectiveRole);
 
     const commonTabs = [
       {
@@ -220,7 +224,7 @@ const BottomTabNavigator = ({
     }
 
     // If no role is detected, default to trainer tabs for testing
-    console.log("No role detected, defaulting to trainer tabs");
+    // console.log("No role detected, defaulting to trainer tabs");
     return [
       {
         name: "Clients",
@@ -236,38 +240,44 @@ const BottomTabNavigator = ({
     ];
   };
 
-  return (
-    <View className="flex-1">
-      {/* Content Area */}
-      <View className="flex-1">{renderContent()}</View>
 
-      {/* Bottom Tab Bar - hidden when viewing client details */}
-      {!hideTabBar && (
-        <View
-          className="flex-row bg-white h-16 items-center border-t border-gray-100"
-          style={{
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: -2 },
-            shadowOpacity: 0.1,
-            shadowRadius: 4,
-            elevation: 10,
-          }}
-        >
-          {getTabConfig().map((tab, index) => (
-            <TabItem
-              key={index}
-              name={tab.name}
-              icon={tab.icon}
-              hasNotification={tab.hasNotification}
-              isActive={tab.isActive}
-              onPress={() =>
-                setActiveTab(tab.name === "Clients" ? "Home" : tab.name)
-              }
-            />
-          ))}
-        </View>
-      )}
-    </View>
+  return (
+    <SafeAreaProvider>
+
+      <View className="flex-1 ">
+        <StatusBar style="light" backgroundColor="#9d174d" />
+
+        {/* Content Area */}
+        <View className="flex-1" style={{ marginTop: insets?.top }}>{renderContent()}</View>
+
+        {/* Bottom Tab Bar - hidden when viewing client details */}
+        {!hideTabBar && (
+          <View
+            className="flex-row bg-white h-16 items-center border-t border-gray-100"
+            style={{
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: -2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 10,
+            }}
+          >
+            {getTabConfig().map((tab, index) => (
+              <TabItem
+                key={index}
+                name={tab.name}
+                icon={tab.icon}
+                hasNotification={tab.hasNotification}
+                isActive={tab.isActive}
+                onPress={() =>
+                  setActiveTab(tab.name === "Clients" ? "Home" : tab.name)
+                }
+              />
+            ))}
+          </View>
+        )}
+      </View>
+    </SafeAreaProvider>
   );
 };
 

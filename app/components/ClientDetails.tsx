@@ -24,8 +24,10 @@ import {
   Edit2,
   Save,
   CalendarDays,
+  X,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ClientDetailsProps {
   client?: {
@@ -43,11 +45,55 @@ interface ClientDetailsProps {
   onBack: () => void;
 }
 
+// Mock weekly goals
+const weeklyGoals = [
+  { id: "1", title: "Workout 4 times", completed: true },
+  { id: "2", title: "Track all meals", completed: true },
+  { id: "3", title: "Drink 2L water daily", completed: false },
+  { id: "4", title: "Sleep 7+ hours", completed: false },
+];
+
+// Mock progress logs
+const progressLogs = [
+  {
+    date: "2025-05-03T04:00:00.000Z",
+    weight: "145 lbs",
+    workoutsCompleted: "4/5",
+    notes: "Completed all exercises except cardio",
+  },
+  {
+    date: "2025-06-03T04:00:00.000Z",
+    weight: "146 lbs",
+    workoutsCompleted: "5/5",
+    notes: "Great week, hit all targets",
+  },
+  {
+    date: "2025-07-03T04:00:00.000Z",
+    weight: "147 lbs",
+    workoutsCompleted: "3/5",
+    notes: "Missed two workouts due to travel",
+  },
+  {
+    date: "2025-08-03T04:00:00.000Z",
+    weight: "148 lbs",
+    workoutsCompleted: "4/5",
+    notes: "Good progress on strength exercises",
+  },
+  {
+    date: "2025-09-03T04:00:00.000Z",
+    weight: "150 lbs",
+    workoutsCompleted: "5/5",
+    notes: "First week completed successfully",
+  },
+];
+
+
 const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const [selectedPlan, setSelectedPlan] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | number | null>(
     null,
   );
+  const [showGoalModal, setShowGoalModal] = useState(false)
   const [showPlanDropdown, setShowPlanDropdown] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({
     top: 0,
@@ -68,6 +114,14 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
 
+  const [showGoalDatePicker, setShowGoalDatePicker] = useState(false)
+  const [goalTitle, setGoalTitle] = useState('')
+  const [goalStartDate, setGoalStartDate] = useState<Date>(new Date());
+  const [isAssigningGoal, setIsAssigningGoal] = useState(false)
+  const [goalsList, setGoalsList] = useState<any>([])
+  const [clientWeightsLogs, setClientWeightsLogs] = useState<any>([])
+
+
   // Mock data for the client if not provided
   const clientData = client || {
     id: "1",
@@ -85,92 +139,86 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
 
   // Fetch workout plans
   useEffect(() => {
-    const fetchWorkoutPlans = async () => {
-      try {
-        setLoadingPlans(true);
-        console.log("Fetching workout plans...");
-        const plans = await trainerApi.getWorkoutPlans();
-        console.log("Fetched workout plans:", plans);
+    (async () => {
+      await Promise.all([
+        fetchWorkoutPlans(),
+        fetchWeeklyGoals(),
+        fetchClientWeightLogs()
+      ])
+    })()
 
-        if (plans && Array.isArray(plans)) {
-          const formattedPlans = plans.map((plan) => ({
-            id: plan.id,
-            name: plan.name,
-          }));
-          setWorkoutPlans(formattedPlans);
+  }, [client]);
 
-          // If we have plans, set the first one as selected by default
-          if (formattedPlans.length > 0) {
-            setSelectedPlan(formattedPlans[0].name);
-          }
-        } else {
-          throw new Error("Invalid response format");
-        }
-      } catch (error) {
-        console.error("Error fetching workout plans:", error);
-        // Fallback to mock data
-        const mockPlans = [
-          { id: "1", name: "Full Body Strength" },
-          { id: "2", name: "Weight Loss Program" },
-          { id: "3", name: "Cardio Focus" },
-          { id: "4", name: "Muscle Building" },
-          { id: "5", name: "Flexibility & Toning" },
-        ];
-        setWorkoutPlans(mockPlans);
+  const fetchWeeklyGoals = async () => {
+    try {
+      const goals = await trainerApi.getClientsWeeklyGoals(Number(client?.id));
+      setGoalsList(goals)
+    } catch (error) {
+      setGoalsList(weeklyGoals)
+    }
+  };
 
-        // Set the first mock plan as selected
-        if (selectedPlan === "") {
-          setSelectedPlan(mockPlans[0].name);
-        }
-      } finally {
-        setLoadingPlans(false);
+  const fetchClientWeightLogs = async () => {
+    try {
+      const weightDetails = await trainerApi.getClientsWeightsLogs(Number(client?.id));
+      console.log(weightDetails)
+      setClientWeightsLogs(weightDetails)
+    } catch (error) {
+      setClientWeightsLogs(progressLogs)
+    }
+  };
+
+  const fetchWorkoutPlans = async () => {
+    try {
+      setLoadingPlans(true);
+      // console.log("Fetching workout plans...");
+      const trainerId = await AsyncStorage.getItem('user_id');
+
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
       }
-    };
+      const parsedTrainerId = parseInt(trainerId, 10);
 
-    fetchWorkoutPlans();
-  }, []);
+      const data = await trainerApi.getWorkoutPlansByTrainer(parsedTrainerId);
+      console.log(data)
+      setWorkoutPlans([data])
+      // const plans = await trainerApi.getWorkoutPlans();
+      // console.log("Fetched workout plans:", plans);
 
-  // Mock progress logs
-  const progressLogs = [
-    {
-      date: "Jun 12, 2023",
-      weight: "145 lbs",
-      workoutsCompleted: "4/5",
-      notes: "Completed all exercises except cardio",
-    },
-    {
-      date: "Jun 5, 2023",
-      weight: "146 lbs",
-      workoutsCompleted: "5/5",
-      notes: "Great week, hit all targets",
-    },
-    {
-      date: "May 29, 2023",
-      weight: "147 lbs",
-      workoutsCompleted: "3/5",
-      notes: "Missed two workouts due to travel",
-    },
-    {
-      date: "May 22, 2023",
-      weight: "148 lbs",
-      workoutsCompleted: "4/5",
-      notes: "Good progress on strength exercises",
-    },
-    {
-      date: "May 15, 2023",
-      weight: "150 lbs",
-      workoutsCompleted: "5/5",
-      notes: "First week completed successfully",
-    },
-  ];
+      // if (data && Array.isArray(data)) {
+      //   const formattedPlans = data.map((plan) => ({
+      //     id: plan.id,
+      //     name: plan.name,
+      //   }));
+      //   setWorkoutPlans(formattedPlans);
 
-  // Mock weekly goals
-  const weeklyGoals = [
-    { id: "1", title: "Workout 4 times", completed: true },
-    { id: "2", title: "Track all meals", completed: true },
-    { id: "3", title: "Drink 2L water daily", completed: false },
-    { id: "4", title: "Sleep 7+ hours", completed: false },
-  ];
+      //   // If we have plans, set the first one as selected by default
+      //   // if (formattedPlans.length > 0) {
+      //   //   setSelectedPlan(formattedPlans[0].name);
+      //   // }
+      // } else {
+      //   throw new Error("Invalid response format");
+      // }
+    } catch (error) {
+      console.error("Error fetching workout plans:", error);
+      // Fallback to mock data
+      const mockPlans = [
+        { id: "1", name: "Full Body Strength" },
+        { id: "2", name: "Weight Loss Program" },
+        { id: "3", name: "Cardio Focus" },
+        { id: "4", name: "Muscle Building" },
+        { id: "5", name: "Flexibility & Toning" },
+      ];
+      setWorkoutPlans(mockPlans);
+
+      // Set the first mock plan as selected
+      if (selectedPlan === "") {
+        setSelectedPlan(mockPlans[0].name);
+      }
+    } finally {
+      setLoadingPlans(false);
+    }
+  };
 
   const toggleGoalCompletion = (id: string) => {
     // In a real app, this would update the state
@@ -178,8 +226,13 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   };
 
   // Format date for display
-  const formatDate = (date: Date): string => {
-    return date.toLocaleDateString("en-US", {
+  const formatDate = (input: Date): string => {
+    if (!input) return ""; // or return 'Invalid Date'
+
+    const date = new Date(input);
+
+    if (isNaN(date)) return "Invalid Date";
+    return date?.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
       day: "numeric",
@@ -187,11 +240,32 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
     });
   };
 
+  const formatDateForWeightLogs = (input: Date): string => {
+    if (!input) return ""; // or return 'Invalid Date'
+
+    const date = new Date(input);
+
+    if (isNaN(date)) return "Invalid Date";
+
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+
   // Handle date change
   const onDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || scheduledDate;
     setShowDatePicker(Platform.OS === "ios");
     setScheduledDate(currentDate);
+  };
+
+  const onGoalStartDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || goalStartDate;
+    setShowGoalDatePicker(Platform.OS === "ios");
+    setGoalStartDate(currentDate);
   };
 
   // Format date for API
@@ -205,6 +279,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
         Alert.alert("Error", "Please select a workout plan first.");
         return;
       }
+
 
       // Validate scheduled date
       const today = new Date();
@@ -223,13 +298,19 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
       console.log(
         `Assigning plan: ${selectedPlan} (ID: ${selectedPlanId}) to client ID: ${clientData.id} on date: ${formattedDate}`,
       );
+      const trainerId = await AsyncStorage.getItem('user_id');
 
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
+      }
+      const parsedTrainerId = parseInt(trainerId, 10);
       // Call the API to assign the workout plan with scheduled date
       try {
         const response = await trainerApi.assignClientWorkout(
           clientData.id,
           selectedPlanId,
           formattedDate,
+          parsedTrainerId
         );
 
         console.log("Assignment successful:", response);
@@ -253,6 +334,59 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
       setIsAssigning(false);
     }
   };
+
+  const handleAssignGoal = async () => {
+    if (!goalTitle?.trim()) {
+      Alert.alert("Error", "Please select a Goal Name.");
+      return;
+    }
+    if (!goalStartDate) {
+      Alert.alert("Error", "Please select a Goal Start Date.");
+      return;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (goalStartDate < today) {
+      Alert.alert("Error", "Please select a date today or in the future.");
+      return;
+    }
+    const formattedDate = formatDateForApi(goalStartDate);
+    const trainerId = await AsyncStorage.getItem('user_id');
+
+    if (trainerId === null) {
+      throw new Error('Trainer ID not found in storage');
+    }
+    const parsedTrainerId = parseInt(trainerId, 10);
+
+    try {
+      setIsAssigningGoal(true);
+      const response = await trainerApi.assignClientWeeklyGoal(
+        Number(clientData.id),
+        parsedTrainerId,
+        goalTitle,
+        formattedDate
+      );
+      console.log(response)
+      setGoalTitle('')
+      setGoalStartDate(new Date())
+      setShowGoalModal(false)
+      Alert.alert(
+        "Success",
+        `${goalTitle} has been assigned to ${clientData?.name} on ${formatDate(goalStartDate)}.`
+      );
+      fetchWeeklyGoals()
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "Failed to assign weekly goal. Please try again.",
+      );
+    } finally {
+      setIsAssigningGoal(false);
+    }
+
+  }
 
   const saveNotes = async () => {
     try {
@@ -518,18 +652,28 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
 
           {/* Weekly Goals */}
           <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
-            <View className="flex-row items-center mb-4">
-              <Calendar size={20} color="#be185d" />
-              <Text className="text-lg font-semibold text-pink-800 ml-2">
-                Weekly Goals
-              </Text>
+
+            <View className="flex flex-row items-center justify-between">
+              <View className="flex-row items-center mb-4">
+                <Calendar size={20} color="#be185d" />
+                <Text className="text-lg font-semibold text-pink-800 ml-2">
+                  Weekly Goals
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowGoalModal(true)}
+                className="flex-row items-center"
+              >
+                <Save size={18} color="#be185d" />
+                <Text className="text-pink-600 font-medium ml-1">Add Goal</Text>
+              </TouchableOpacity>
             </View>
 
-            {weeklyGoals.map((goal) => (
-              <TouchableOpacity
+            {goalsList?.map((goal) => (
+              <View
                 key={goal.id}
                 className="flex-row items-center justify-between py-3 border-b border-gray-100"
-                onPress={() => toggleGoalCompletion(goal.id)}
+              // onPress={() => toggleGoalCompletion(goal.id)}
               >
                 <Text className="font-medium text-gray-800">{goal.title}</Text>
                 {goal.completed ? (
@@ -537,7 +681,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                 ) : (
                   <Circle size={24} color="#d1d5db" />
                 )}
-              </TouchableOpacity>
+              </View>
             ))}
           </View>
 
@@ -550,22 +694,22 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
               </Text>
             </View>
 
-            {progressLogs.map((log, index) => (
+            {clientWeightsLogs?.map((log, index) => (
               <View
                 key={index}
                 className="py-3 border-b border-gray-100 last:border-b-0"
               >
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="font-medium text-gray-800">{log.date}</Text>
-                  <View className="flex-row items-center">
+                  <Text className="font-medium text-gray-800">{formatDate(log.date)}</Text>
+                  {/* <View className="flex-row items-center">
                     <Clock size={14} color="#9ca3af" />
                     <Text className="text-xs text-gray-500 ml-1">
                       {log.workoutsCompleted} workouts
                     </Text>
-                  </View>
+                  </View> */}
                 </View>
                 <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-gray-600">Weight: {log.weight}</Text>
+                  <Text className="text-gray-600">Weight: {log.weight} lbs</Text>
                 </View>
                 <Text className="text-gray-600 text-sm">{log.notes}</Text>
               </View>
@@ -573,12 +717,118 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
           </View>
 
           {/* Message Client Button */}
-          <TouchableOpacity className="bg-pink-600 py-3 rounded-lg items-center mb-8">
+          {/* <TouchableOpacity className="bg-pink-600 py-3 rounded-lg items-center mb-8">
             <Text className="text-white font-semibold">Message Client</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </ScrollView>
-    </View>
+
+      <Modal
+        visible={showGoalModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowGoalModal(false)}
+      >
+        <View className="flex-1 justify-center items-center bg-black/50">
+          <View className="bg-white w-11/12 rounded-xl p-5 max-h-5/6">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-xl font-bold text-pink-800">
+                Assign Weekly Goal
+                {/* {isEditing ? "Edit Workout Plan" : "Create Workout Plan"} */}
+              </Text>
+              <TouchableOpacity onPress={() => setShowGoalModal(false)}>
+                <X size={24} color="#9ca3af" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-gray-700 mb-1 font-medium">
+                Name <Text className="text-red-500">*</Text>
+              </Text>
+              <TextInput
+                className="border border-gray-300 rounded-lg p-2 text-gray-800"
+                value={goalTitle}
+                onChangeText={(text) =>
+                  setGoalTitle(text)
+                }
+                placeholder="e.g. Full Body Strength"
+                placeholderTextColor="#9ca3af"
+              />
+              <Text className="text-xs text-gray-500 mt-1">Required</Text>
+            </View>
+
+            {/* Schedule Date Selector */}
+            <View className="mb-3">
+              <Text className="text-gray-700 mb-2 font-medium">
+                Start Date
+              </Text>
+              <TouchableOpacity
+                className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
+                onPress={() => setShowGoalDatePicker(true)}
+              >
+                <Text className="text-gray-800">
+                  {formatDate(goalStartDate)}
+                </Text>
+                <CalendarDays size={20} color="#9ca3af" />
+              </TouchableOpacity>
+
+              {showGoalDatePicker && (
+                <View className="bg-white p-2 rounded-lg mt-2">
+                  <DateTimePicker
+                    value={goalStartDate}
+                    mode="date"
+                    display={Platform.OS === "ios" ? "spinner" : "default"}
+                    onChange={onGoalStartDateChange}
+                    minimumDate={new Date()}
+                  />
+                  {Platform.OS === "ios" && (
+                    <TouchableOpacity
+                      className="bg-pink-600 py-2 px-4 rounded-lg self-end mt-2"
+                      onPress={() => setShowGoalDatePicker(false)}
+                    >
+                      <Text className="text-white font-medium">Done</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
+            </View>
+
+
+            <View className="flex-row justify-end mt-4">
+              <TouchableOpacity
+                className="bg-gray-200 py-2 px-4 rounded-lg mr-2"
+                onPress={() => setShowGoalModal(false)}
+              >
+                <Text className="text-gray-800 font-medium">Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                className={`bg-pink-600 py-2 px-4 rounded-lg flex-row items-center ${isAssigningGoal ? "opacity-70" : ""}`}
+                onPress={handleAssignGoal}
+                disabled={isAssigningGoal}
+              >
+                {isAssigningGoal ? (
+                  <>
+                    <ActivityIndicator size="small" color="white" />
+                    <Text className="text-white font-medium ml-2">
+                      Assigning...
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} color="white" />
+                    <Text className="text-white font-medium ml-1">
+                      Assign Goal
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View >
+      </Modal >
+
+    </View >
   );
 };
 

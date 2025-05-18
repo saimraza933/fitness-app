@@ -22,6 +22,7 @@ import {
   ImageIcon,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Exercise {
   id: string | number;
@@ -51,6 +52,7 @@ const ExerciseManager = () => {
     description: string;
     imageUrl: string;
     instructions: string;
+
   }>({
     name: "",
     description: "",
@@ -66,10 +68,15 @@ const ExerciseManager = () => {
     try {
       setLoading(true);
       setError(null);
+      const trainerId = await AsyncStorage.getItem('user_id');
 
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
+      }
+      const parsedTrainerId = parseInt(trainerId, 10);
       // Call the API to get exercises
-      const data = await trainerApi.getExercises();
-      setExercises(data);
+      const data = await trainerApi.getExercisesByTrainer(parsedTrainerId);
+      setExercises([data]);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching exercises:", err);
@@ -195,21 +202,25 @@ const ExerciseManager = () => {
 
     try {
       setIsSaving(true);
+      const trainerId = await AsyncStorage.getItem('user_id');
+
+      if (trainerId === null) {
+        throw new Error('Trainer ID not found in storage');
+      }
+      const parsedTrainerId = parseInt(trainerId, 10);
 
       let response;
       if (isEditing && selectedExercise) {
         // Update existing exercise
         response = await trainerApi.updateExercise(
           selectedExercise.id,
-          formData,
+          { created_by: parsedTrainerId, ...formData },
         );
-        setExercises(
-          exercises.map((e) => (e.id === selectedExercise.id ? response : e)),
-        );
+        fetchExercises()
       } else {
         // Create new exercise
-        response = await trainerApi.createExercise(formData);
-        setExercises([...exercises, response]);
+        response = await trainerApi.createExercise({ created_by: parsedTrainerId, ...formData });
+        fetchExercises()
       }
 
       setShowExerciseModal(false);

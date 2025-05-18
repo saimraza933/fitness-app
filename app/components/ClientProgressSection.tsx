@@ -24,6 +24,59 @@ import {
   ChevronRight,
 } from "lucide-react-native";
 import { useAuth } from "./AuthContext";
+import { trainerApi } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const goalsData = [
+  { id: "1", title: "Workout 4 times", completed: true },
+  { id: "2", title: "Track all meals", completed: true },
+  { id: "3", title: "Drink 2L water daily", completed: false },
+  { id: "4", title: "Sleep 7+ hours", completed: false },
+]
+
+const mockWeightData = [
+  { date: "May 1", weight: 50 },
+  { date: "May 8", weight: 48 },
+  { date: "May 15", weight: 48 },
+  { date: "May 22", weight: 47 },
+  { date: "May 29", weight: 45 },
+  { date: "Jun 5", weight: 45 },
+  { date: "Jun 12", weight: 44 },
+]
+
+function formatToMonthDay(isoDateStr: any) {
+  if (!isoDateStr) return "";
+
+  const date: any = new Date(isoDateStr);
+  if (isNaN(date)) return "";
+
+  const options = { month: "short", day: "2-digit" };
+  return date.toLocaleDateString("en-US", options);
+}
+
+const filterThisMonthData = (dataArray: any) => {
+  const now = new Date();
+  const currentMonth = now.getMonth(); // 0-based (May = 4)
+  const currentYear = now.getFullYear();
+
+  return dataArray.filter((item) => {
+    const date = new Date(item.date);
+    return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
+  });
+};
+
+const getWeightChangeThisMonth = (thisMonthData: any) => {
+
+  if (thisMonthData.length < 2) return "0 lbs";
+
+  const sorted = [...thisMonthData].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const startWeight = parseFloat(sorted[0].weight);
+  const endWeight = parseFloat(sorted[sorted.length - 1].weight);
+  const diff = endWeight - startWeight;
+
+  const sign = diff >= 0 ? "+" : "-";
+  return `${sign}${Math.abs(diff).toFixed(1)} lbs this month`;
+};
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -45,7 +98,7 @@ interface ProgressSectionProps {
   onClientDetailsView?: (isViewing: boolean) => void;
 }
 
-const ProgressSection = ({
+const ClientProgressSection = ({
   onClientSelect,
   selectedClient,
   onClientDetailsView,
@@ -55,6 +108,8 @@ const ProgressSection = ({
   const [showHistoricalData, setShowHistoricalData] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("3 Months");
   const [expandedSection, setExpandedSection] = useState("weight");
+  const [goalsList, setGoalsList] = useState<any>([])
+  const [isGoalLoading, setIsGoalLoading] = useState(false)
   // Mock clients data for trainer view
   const [clients, setClients] = useState<Client[]>([
     {
@@ -137,15 +192,57 @@ const ProgressSection = ({
   ]);
 
   // Mock data for charts - for client view or selected client view
-  const [weightData, setWeightData] = useState([
-    { date: "May 1", weight: 150 },
-    { date: "May 8", weight: 149 },
-    { date: "May 15", weight: 148 },
-    { date: "May 22", weight: 147 },
-    { date: "May 29", weight: 146 },
-    { date: "Jun 5", weight: 145 },
-    { date: "Jun 12", weight: 144 },
-  ]);
+  const [weightData, setWeightData] = useState<any>([{ "date": "May 03", "weight": 64.2 }]);
+
+  useEffect(() => {
+    (async () => {
+      await Promise.all([
+        fetchWeeklyGoals(),
+        fetchClientWeightLogs()
+      ])
+    })()
+  }, [])
+
+
+  const fetchWeeklyGoals = async () => {
+    const clientId = await AsyncStorage.getItem('user_id');
+
+    if (clientId === null) {
+      throw new Error('Trainer ID not found in storage');
+    }
+    const parsedClientId = parseInt(clientId, 10);
+    setIsGoalLoading(true)
+    try {
+      const goals = await trainerApi.getClientsWeeklyGoals(Number(parsedClientId));
+      // console.log('weekly goals', goals)
+      setGoalsList(goals)
+    } catch (error) {
+      setGoalsList(goalsData)
+    } finally {
+      setIsGoalLoading(false)
+    }
+  };
+
+  const fetchClientWeightLogs = async () => {
+    const clientId = await AsyncStorage.getItem('user_id');
+
+    if (clientId === null) {
+      throw new Error('Trainer ID not found in storage');
+    }
+    const parsedClientId = parseInt(clientId, 10);
+    try {
+      const weightDetails = await trainerApi.getClientsWeightsLogs(Number(parsedClientId));
+      const formatdData = Array.isArray(filterThisMonthData(weightDetails)) && weightDetails?.map((val: any) => {
+        return {
+          date: formatToMonthDay(val?.date),
+          weight: Number(val.weight)
+        }
+      })
+      setWeightData(formatdData)
+    } catch (error) {
+      setWeightData(mockWeightData)
+    }
+  };
 
   const completionData = [
     { week: "Week 1", rate: 70 },
@@ -156,28 +253,27 @@ const ProgressSection = ({
     { week: "Week 6", rate: 95 },
   ];
 
-  const [weeklyGoals, setWeeklyGoals] = useState([
-    { id: "1", title: "Workout 4 times", completed: true },
-    { id: "2", title: "Track all meals", completed: true },
-    { id: "3", title: "Drink 2L water daily", completed: false },
-    { id: "4", title: "Sleep 7+ hours", completed: false },
-  ]);
+
 
   // Calculate max values for scaling
   const maxWeight = Math.max(...weightData.map((d) => d.weight));
   const minWeight = Math.min(...weightData.map((d) => d.weight)) - 1; // Subtract 1 to give some space at bottom
-  const weightRange = maxWeight - minWeight;
+  const weightRange = maxWeight - minWeight || 1;
+
 
   // Line chart points calculation
   const chartWidth = screenWidth - 60; // Accounting for padding
   const chartHeight = 180;
-  const dataPointSpacing = chartWidth / (weightData.length - 1);
+  // const dataPointSpacing = chartWidth / (weightData.length - 1);
+  const dataPointSpacing =
+    weightData.length > 1 ? chartWidth / (weightData.length - 1) : 0;
+
 
   // Generate SVG path for the line chart
   const generateLinePath = () => {
     let path = "";
 
-    weightData.forEach((point, index) => {
+    weightData.forEach((point: any, index: any) => {
       const x = index * dataPointSpacing;
       const normalizedWeight = (point.weight - minWeight) / weightRange;
       const y = chartHeight - normalizedWeight * chartHeight;
@@ -192,12 +288,30 @@ const ProgressSection = ({
     return path;
   };
 
-  const toggleGoalCompletion = (id: string) => {
-    setWeeklyGoals(
-      weeklyGoals.map((goal) =>
-        goal.id === id ? { ...goal, completed: !goal.completed } : goal,
+  const toggleGoalCompletion = async (value: any) => {
+    setGoalsList(
+      goalsList.map((goal: any) =>
+        goal.id === value.id ? { ...goal, completed: !goal.completed } : goal,
       ),
     );
+    const clientId = await AsyncStorage.getItem('user_id');
+
+    if (clientId === null) {
+      throw new Error('Trainer ID not found in storage');
+    }
+    const parsedClientId = parseInt(clientId, 10);
+    const data = {
+      ...value,
+      completed: !value?.completed,
+      client_id: parsedClientId
+    }
+    console.log(data)
+    // try {
+    //   await trainerApi?.updateClientWeeklyGoal(data)
+    //   console.log('current goal', data)
+    // } catch (error) {
+    //   console.log(error)
+    // }
   };
 
   // Historical data
@@ -391,7 +505,7 @@ const ProgressSection = ({
               </Text>
             </View>
             <Text className="text-sm text-pink-600 font-medium">
-              -6 lbs this month
+              {getWeightChangeThisMonth(weightData)}
             </Text>
           </View>
 
@@ -465,7 +579,7 @@ const ProgressSection = ({
                 strokeWidth="2"
               />
 
-              {weightData.map((point, index) => {
+              {weightData.map((point: any, index: any) => {
                 const x = index * dataPointSpacing;
                 const normalizedWeight =
                   (point.weight - minWeight) / weightRange;
@@ -516,20 +630,23 @@ const ProgressSection = ({
             </Text>
           </View>
 
-          {weeklyGoals.map((goal) => (
-            <TouchableOpacity
-              key={goal.id}
-              className="flex-row items-center justify-between py-3 border-b border-gray-100"
-              onPress={() => toggleGoalCompletion(goal.id)}
-            >
-              <Text className="font-medium text-gray-800">{goal.title}</Text>
-              {goal.completed ? (
-                <CheckCircle size={24} color="#be185d" />
-              ) : (
-                <IconCircle size={24} color="#d1d5db" />
-              )}
-            </TouchableOpacity>
-          ))}
+          {
+            isGoalLoading ? <Text className="text-center">Loading....</Text> :
+              goalsList?.length > 0 ? goalsList?.map((goal) => (
+                <TouchableOpacity
+                  key={goal.id}
+                  className="flex-row items-center justify-between py-3 border-b border-gray-100"
+                  onPress={() => toggleGoalCompletion(goal)}
+                >
+                  <Text className="font-medium text-gray-800">{goal.title}</Text>
+                  {goal.completed ? (
+                    <CheckCircle size={24} color="#be185d" />
+                  ) : (
+                    <IconCircle size={24} color="#d1d5db" />
+                  )}
+                </TouchableOpacity>
+              )) :
+                <Text className="text-center">No Goals find</Text>}
         </View>
 
         {/* Workout Completion Chart */}
@@ -980,4 +1097,4 @@ const ProgressSection = ({
   );
 };
 
-export default ProgressSection;
+export default ClientProgressSection;

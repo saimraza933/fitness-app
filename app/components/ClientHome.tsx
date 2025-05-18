@@ -22,7 +22,10 @@ import {
   CheckCircle,
   Circle,
   Trophy,
+  Scroll,
 } from "lucide-react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { clientApi } from "../services/api";
 
 interface WorkoutItem {
   id: string;
@@ -158,26 +161,29 @@ const ClientHome = () => {
   };
 
   // Mock API call to save weight
-  const saveWeight = () => {
+  const saveWeight = async () => {
     if (!weight) {
       Alert.alert("Error", "Please enter your weight");
       return;
     }
+    const clientId = await AsyncStorage.getItem('user_id');
 
+    if (clientId === null) {
+      throw new Error('Trainer ID not found in storage');
+    }
+    const parsedClientId = parseInt(clientId, 10);
+    const today = new Date().toISOString().split("T")[0];
     setRefreshing(true);
-    // Simulate API call
-    setTimeout(() => {
-      const today = new Date().toLocaleDateString();
-      setWeightHistory((prev) => [...prev, { date: today, weight }]);
-      setWeightSaved(true);
-      setRefreshing(false);
 
-      // Show success message
+    try {
+      await clientApi.savedailyWeightsLogs(0, Number(weight), today, parsedClientId);
       Alert.alert("Success", "Weight saved successfully");
-
-      // Reset saved state after 3 seconds
-      setTimeout(() => setWeightSaved(false), 3000);
-    }, 1000);
+      setWeight('')
+    } catch (error) {
+      Alert.alert("Error", "Soemthing went wrong");
+    } finally {
+      setRefreshing(false)
+    }
   };
 
   const onRefresh = React.useCallback(() => {
@@ -203,7 +209,7 @@ const ClientHome = () => {
     <View className="bg-pink-50 p-4">
       <View className="mb-6">
         <Text className="text-2xl font-bold text-pink-800 mb-2">
-          Welcome, Sarah!
+          Welcome
         </Text>
         <Text className="text-gray-600">Let's crush your goals today!</Text>
       </View>
@@ -226,141 +232,144 @@ const ClientHome = () => {
           <Text className="text-xs text-gray-500">goal: 10,000</Text>
         </View>
       </View>
+      <ScrollView>
 
-      {/* Weight Tracking */}
-      <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
-        <View className="flex-row items-center mb-2">
-          <Scale size={20} color="#be185d" />
-          <Text className="text-lg font-semibold text-pink-800 ml-2">
-            Weight Tracking
-          </Text>
-        </View>
-        <View className="flex-row items-center">
-          <TextInput
-            className="flex-1 border border-gray-300 rounded-lg p-2 mr-2"
-            placeholder="Enter today's weight"
-            keyboardType="numeric"
-            value={weight}
-            onChangeText={setWeight}
-          />
-          <TouchableOpacity
-            className={`${weightSaved ? "bg-green-600" : "bg-pink-600"} py-2 px-4 rounded-lg`}
-            onPress={saveWeight}
-            disabled={refreshing}
-          >
-            <Text className="text-white font-semibold">
-              {weightSaved ? "Saved" : "Save"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
 
-      {/* Today's Workout */}
-      <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center">
-            <Dumbbell size={20} color="#be185d" />
+        {/* Weight Tracking */}
+        <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
+          <View className="flex-row items-center mb-2">
+            <Scale size={20} color="#be185d" />
             <Text className="text-lg font-semibold text-pink-800 ml-2">
-              Today's Workout
+              Weight Tracking
             </Text>
           </View>
           <View className="flex-row items-center">
-            <Trophy size={16} color="#be185d" />
-            <Text className="text-sm font-medium text-pink-800 ml-1">
-              75% done
-            </Text>
+            <TextInput
+              className="flex-1 border border-gray-300 rounded-lg p-2 mr-2"
+              placeholder="Enter today's weight"
+              keyboardType="numeric"
+              value={weight}
+              onChangeText={setWeight}
+            />
+            <TouchableOpacity
+              className={`${refreshing ? "opacity-70" : ""} bg-pink-600 py-2 px-4 rounded-lg`}
+              onPress={saveWeight}
+              disabled={refreshing}
+            >
+              <Text className="text-white font-semibold">
+                {refreshing ? "Save..." : "Save"}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        {workouts.map((workout) => (
-          <TouchableOpacity
-            key={workout.id}
-            className="flex-row items-center justify-between py-3 border-b border-gray-100"
-            onPress={() => toggleWorkoutCompletion(workout.id)}
-          >
+        {/* Today's Workout */}
+        <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
+          <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center">
-              {workout.imageUrl && (
-                <Image
-                  source={{ uri: workout.imageUrl }}
-                  className="w-12 h-12 rounded-lg mr-3"
-                />
-              )}
-              <View>
-                <Text className="font-medium text-gray-800">
-                  {workout.name}
-                </Text>
-                <Text className="text-gray-500">
-                  {workout.sets} sets × {workout.reps} reps
-                </Text>
-              </View>
+              <Dumbbell size={20} color="#be185d" />
+              <Text className="text-lg font-semibold text-pink-800 ml-2">
+                Today's Workout
+              </Text>
             </View>
-            {workout.completed ? (
-              <CheckCircle size={24} color="#be185d" />
-            ) : (
-              <Circle size={24} color="#d1d5db" />
-            )}
+            <View className="flex-row items-center">
+              <Trophy size={16} color="#be185d" />
+              <Text className="text-sm font-medium text-pink-800 ml-1">
+                75% done
+              </Text>
+            </View>
+          </View>
+
+          {workouts.map((workout) => (
+            <TouchableOpacity
+              key={workout.id}
+              className="flex-row items-center justify-between py-3 border-b border-gray-100"
+              onPress={() => toggleWorkoutCompletion(workout.id)}
+            >
+              <View className="flex-row items-center">
+                {workout.imageUrl && (
+                  <Image
+                    source={{ uri: workout.imageUrl }}
+                    className="w-12 h-12 rounded-lg mr-3"
+                  />
+                )}
+                <View>
+                  <Text className="font-medium text-gray-800">
+                    {workout.name}
+                  </Text>
+                  <Text className="text-gray-500">
+                    {workout.sets} sets × {workout.reps} reps
+                  </Text>
+                </View>
+              </View>
+              {workout.completed ? (
+                <CheckCircle size={24} color="#be185d" />
+              ) : (
+                <Circle size={24} color="#d1d5db" />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity
+            className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+            onPress={() => setShowWorkoutDetails(true)}
+          >
+            <Text className="text-pink-800 font-medium">View Details</Text>
           </TouchableOpacity>
-        ))}
-
-        <TouchableOpacity
-          className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
-          onPress={() => setShowWorkoutDetails(true)}
-        >
-          <Text className="text-pink-800 font-medium">View Details</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Diet Recommendations */}
-      <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
-        <View className="flex-row items-center mb-4">
-          <Utensils size={20} color="#be185d" />
-          <Text className="text-lg font-semibold text-pink-800 ml-2">
-            Diet Plan
-          </Text>
         </View>
 
-        {meals.map((meal) => (
-          <TouchableOpacity
-            key={meal.id}
-            className="flex-row items-center justify-between py-3 border-b border-gray-100"
-            onPress={() => toggleMealCompletion(meal.id)}
-          >
-            <View className="flex-row items-center">
-              {meal.imageUrl && (
-                <Image
-                  source={{ uri: meal.imageUrl }}
-                  className="w-12 h-12 rounded-lg mr-3"
-                />
-              )}
-              <View>
-                <Text className="font-medium text-gray-800">
-                  {meal.name} - {meal.time}
-                </Text>
-                <Text className="text-gray-500">{meal.description}</Text>
+        {/* Diet Recommendations */}
+        <View className="bg-white p-4 rounded-xl shadow-sm mb-6">
+          <View className="flex-row items-center mb-4">
+            <Utensils size={20} color="#be185d" />
+            <Text className="text-lg font-semibold text-pink-800 ml-2">
+              Diet Plan
+            </Text>
+          </View>
+
+          {meals.map((meal) => (
+            <TouchableOpacity
+              key={meal.id}
+              className="flex-row items-center justify-between py-3 border-b border-gray-100"
+              onPress={() => toggleMealCompletion(meal.id)}
+            >
+              <View className="flex-row items-center">
+                {meal.imageUrl && (
+                  <Image
+                    source={{ uri: meal.imageUrl }}
+                    className="w-12 h-12 rounded-lg mr-3"
+                  />
+                )}
+                <View>
+                  <Text className="font-medium text-gray-800">
+                    {meal.name} - {meal.time}
+                  </Text>
+                  <Text className="text-gray-500">{meal.description}</Text>
+                </View>
               </View>
-            </View>
-            {meal.completed ? (
-              <CheckCircle size={24} color="#be185d" />
-            ) : (
-              <Circle size={24} color="#d1d5db" />
-            )}
+              {meal.completed ? (
+                <CheckCircle size={24} color="#be185d" />
+              ) : (
+                <Circle size={24} color="#d1d5db" />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity
+            className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+            onPress={() => router.push("/nutrition-info")}
+          >
+            <Text className="text-pink-800 font-medium">View Nutrition Info</Text>
           </TouchableOpacity>
-        ))}
+        </View>
 
         <TouchableOpacity
-          className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
-          onPress={() => router.push("/nutrition-info")}
+          className="bg-pink-600 py-3 px-4 rounded-lg items-center mb-10"
+          onPress={() => router.push("/dashboard", { screen: "Progress" })}
         >
-          <Text className="text-pink-800 font-medium">View Nutrition Info</Text>
+          <Text className="text-white font-semibold text-lg">View Progress</Text>
         </TouchableOpacity>
-      </View>
-
-      <TouchableOpacity
-        className="bg-pink-600 py-3 px-4 rounded-lg items-center mb-10"
-        onPress={() => router.push("/dashboard", { screen: "Progress" })}
-      >
-        <Text className="text-white font-semibold text-lg">View Progress</Text>
-      </TouchableOpacity>
+      </ScrollView>
       {/* Workout Details Modal */}
       <Modal
         visible={showWorkoutDetails}
@@ -445,7 +454,7 @@ const ClientHome = () => {
             </View>
 
             {/* Start Workout Button */}
-            <View className="p-4 mb-8">
+            {/* <View className="p-4 mb-8">
               <TouchableOpacity
                 className="bg-pink-600 py-4 rounded-xl flex-row justify-center items-center"
                 onPress={() => {
@@ -470,7 +479,7 @@ const ClientHome = () => {
                   Start Workout
                 </Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
           </ScrollView>
         </View>
       </Modal>
