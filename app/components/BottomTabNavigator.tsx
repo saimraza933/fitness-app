@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from "react-native";
+import { View, Text, TouchableOpacity } from "react-native";
 import { useAppSelector } from "../hooks/redux";
 import ClientHome from "./ClientHome";
 import ProgressSection from "./ProgressSection";
@@ -56,30 +56,26 @@ interface BottomTabNavigatorProps {
 const BottomTabNavigator = ({
   hideTabBar = false,
 }: BottomTabNavigatorProps) => {
-  // Get auth state from Redux
   const { userRole } = useAppSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("Home");
   const [selectedClient, setSelectedClient] = useState(null);
   const [selectedProgressClient, setSelectedProgressClient] = useState(null);
   const [localUserRole, setLocalUserRole] = useState<string | null>(null);
-  // Define hideTabBarState to handle tab bar visibility internally
   const [hideTabBarState, setHideTabBarState] = useState(hideTabBar);
   const insets = useSafeAreaInsets();
 
-  // Use effect to capture the userRole when it changes
   useEffect(() => {
     if (userRole) {
-      console.log("BottomTabNavigator: userRole changed to", userRole);
       setLocalUserRole(userRole);
     }
   }, [userRole]);
 
-  console.log(
-    "Current user role:",
-    userRole,
-    "Local user role:",
-    localUserRole,
-  ); // Debug log
+  // console.log(
+  //   "Current user role:",
+  //   userRole,
+  //   "Local user role:",
+  //   localUserRole,
+  // );
 
   // Render the active component based on the selected tab and user role
   const renderContent = () => {
@@ -88,12 +84,12 @@ const BottomTabNavigator = ({
     // Use localUserRole if available, otherwise fall back to userRole from context
     const effectiveRole = localUserRole || userRole;
 
-    console.log(
-      "Rendering content for role:",
-      effectiveRole,
-      "active tab:",
-      activeTab,
-    );
+    // console.log(
+    //   "Rendering content for role:",
+    //   effectiveRole,
+    //   "active tab:",
+    //   activeTab,
+    // );
 
     // For client role
     if (effectiveRole === "client") {
@@ -118,7 +114,7 @@ const BottomTabNavigator = ({
     }
     // For trainer role
     else if (effectiveRole === "trainer") {
-      console.log("Rendering trainer interface");
+      // console.log("Rendering trainer interface");
 
       if (selectedClient) {
         return (
@@ -154,10 +150,7 @@ const BottomTabNavigator = ({
 
   // Get tab configuration based on user role
   const getTabConfig = () => {
-    // Use localUserRole if available, otherwise fall back to userRole from context
     const effectiveRole = localUserRole || userRole;
-
-    // console.log("Getting tab config for role:", effectiveRole);
 
     const commonTabs = [
       {
@@ -243,7 +236,6 @@ const BottomTabNavigator = ({
 
   return (
     <SafeAreaProvider>
-
       <View className="flex-1 ">
         <StatusBar style="light" backgroundColor="#9d174d" />
 

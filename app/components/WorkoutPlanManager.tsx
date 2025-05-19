@@ -101,7 +101,7 @@ const WorkoutPlanManager = () => {
       const parsedTrainerId = parseInt(trainerId, 10);
 
       const data = await trainerApi.getWorkoutPlansByTrainer(parsedTrainerId);
-      setWorkoutPlans([data]);
+      setWorkoutPlans(data);
     } catch (err) {
       console.error("Error fetching workout plans:", err);
       setError("Failed to load workout plans. Please try again.");
@@ -233,12 +233,8 @@ const WorkoutPlanManager = () => {
       console.log(parsedTrainerId)
       // Call the API to get exercises
       const data = await trainerApi.getExercisesByTrainer(parsedTrainerId);
-      console.log("exercises new", data)
-      // Call the API to get exercises
-      // const data = await trainerApi.getExercises();
-
       // Transform the data to match our Exercise interface if needed
-      const formattedExercises = [data].map((exercise: any) => ({
+      const formattedExercises = data?.map((exercise: any) => ({
         id: exercise.id,
         name: exercise.name,
         sets: exercise?.default_sets || 3,

@@ -15,11 +15,56 @@ import { store } from "./store";
 import { initializeAuth, loadSavedUsers } from "./store/slices/authSlice";
 import { useAppDispatch, useAppSelector } from "./hooks/redux";
 
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
+
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 // Keys for AsyncStorage
 const HAS_SEEN_ONBOARDING = "has_seen_onboarding";
+
+// Notifications.setNotificationHandler({
+//   handleNotification: async () => ({
+//     shouldShowBanner: true, // Replaces deprecated shouldShowAlert
+//     shouldPlaySound: true,
+//     shouldSetBadge: false,
+//   }),
+// });
+
+
+// const registerForPushNotificationsAsync = async () => {
+//   if (!Device.isDevice) {
+//     alert("Must use physical device for Push Notifications");
+//     return;
+//   }
+
+//   // ✅ Check permissions
+//   const { status: existingStatus } = await Notifications.getPermissionsAsync();
+//   let finalStatus = existingStatus;
+
+//   if (existingStatus !== "granted") {
+//     const { status } = await Notifications.requestPermissionsAsync();
+//     finalStatus = status;
+//   }
+
+//   if (finalStatus !== "granted") {
+//     alert("Failed to get push token for push notification!");
+//     return;
+//   }
+
+//   // ✅ For Android: create notification channel
+//   if (Platform.OS === "android") {
+//     await Notifications.setNotificationChannelAsync("default", {
+//       name: "default",
+//       importance: Notifications.AndroidImportance.MAX,
+//       sound: "default",
+//       enableVibrate: true,
+//     });
+//   }
+
+//   console.log("✅ Push notification registration complete");
+// }
 
 export default function RootLayout() {
   const [loaded] = useFonts({
@@ -39,6 +84,7 @@ export default function RootLayout() {
         console.error("Failed to initialize TempoDevtools:", error);
       }
     }
+    // registerForPushNotificationsAsync()
   }, []);
 
   // Check if user has seen onboarding
