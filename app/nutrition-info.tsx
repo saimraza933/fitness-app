@@ -252,13 +252,13 @@ export default function NutritionInfoScreen() {
         </View>
 
         {/* Download Button */}
-        <View className="p-4 mb-8">
+        {/* <View className="p-4 mb-8">
           <TouchableOpacity className="bg-pink-600 py-4 rounded-xl flex-row justify-center items-center">
             <Text className="text-white font-bold text-lg">
               Download Meal Plan
             </Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
       </ScrollView>
     </SafeAreaView>
   );

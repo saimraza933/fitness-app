@@ -1,8 +1,6 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-// API base URL
-const API_BASE_URL = "https://fitness.pixelgateltd.com";
+import { API_BASE_URL } from "../common";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -124,6 +122,38 @@ export const clientApi = {
     const response = await api.post(`/clients/${clientId}/weight-logs`, { trainerId, weight, date });
     return response.data;
   },
+
+  markExerciseComplete: async (workoutPlanId: number, exerciseId: number, completed: any) => {
+    const response = await api.put(`/exercises/toggle-status/${workoutPlanId}/${exerciseId}?status=${completed}`);
+    return response.data;
+  },
+
+  markWorkoutComplete: async (clientId: number, assignmentId: number, exerciseId: number, completed: boolean) => {
+    console.log(completed)
+    const response = await api.put(`/clients/${clientId}/workout-assignments/${assignmentId}/exercises/${exerciseId}`, { completed });
+    return response.data;
+  },
+
+  getClientWorkoutCompletionLogs: async (clientId: number, fromDate?: string, toDate?: string) => {
+    let url = `/clients/${clientId}/workout-assignments/logs?`
+    if (fromDate) {
+      url += `&fromDate=${fromDate}`
+    }
+    if (toDate) {
+      url += `&toDate=${toDate}`
+    }
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  getClientWorkoutsAssignmentsWithExercises: async (clientId: number, fromDate?: string,) => {
+    let url = `/clients/${clientId}/workout-assignments?`
+    if (fromDate) {
+      url += `&fromDate=${fromDate}`
+    }
+    const response = await api.get(url);
+    return response.data;
+  },
 };
 
 
@@ -140,7 +170,7 @@ export const trainerApi = {
     return response.data;
   },
 
-  getClientsByTrainer: async (trainerId: number) => {
+  getClientsByTrainer: async (trainerId: number | string) => {
     const response = await api.get(`/getClientsByTrainer/${trainerId}`);
     return response.data;
   },
@@ -173,8 +203,15 @@ export const trainerApi = {
     return response.data;
   },
 
-  getClientsWeightsLogs: async (clientId: number) => {
-    const response = await api.get(`/clients/${clientId}/weight-logs`);
+  getClientsWeightsLogs: async (clientId: number, startDate?: string, endDate?: string) => {
+    let url = `/clients/${clientId}/weight-logs?`
+    if (startDate) {
+      url += `&startDate=${startDate}`
+    }
+    if (endDate) {
+      url += `&endDate=${endDate}`
+    }
+    const response = await api.get(url);
     return response.data;
   },
 
@@ -204,7 +241,7 @@ export const trainerApi = {
 
       console.log("Response from server:", response.status, response.data);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error("API call failed:", error);
       if (error.response) {
         console.error("Response data:", error.response.data);
@@ -230,6 +267,7 @@ export const trainerApi = {
           assignedBy
         },
       );
+      console.log('assign daata of api', response?.data)
       return response.data;
     } catch (error) {
       console.error("Error assigning workout to client:", error);

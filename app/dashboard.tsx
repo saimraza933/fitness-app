@@ -9,22 +9,11 @@ export default function DashboardScreen() {
   const router = useRouter();
   const [isMounted, setIsMounted] = useState(false);
   const [forceRender, setForceRender] = useState(0);
-  // Move the hideTabBar state declaration to the top level of the component
-  // to ensure it's always called in the same order
   const [hideTabBar, setHideTabBar] = useState(false);
 
-  console.log(
-    "Dashboard screen - user role:",
-    userRole,
-    "isLoggedIn:",
-    isLoggedIn,
-  );
-
-  // Force a re-render after component mounts to ensure we have the latest userRole
   useEffect(() => {
     const timer = setTimeout(() => {
       setForceRender((prev) => prev + 1);
-      console.log("Forced re-render, current userRole:", userRole);
     }, 300);
     return () => clearTimeout(timer);
   }, []);
@@ -60,6 +49,3 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
-
-// Import ClientHome directly to avoid navigation issues
-import ClientHome from "./components/ClientHome";

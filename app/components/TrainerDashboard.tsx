@@ -25,6 +25,7 @@ import {
   Barbell,
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
+import { API_BASE_URL } from "../common";
 
 interface Client {
   id: number | string;
@@ -74,44 +75,6 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   }, [showAddClientModal]);
 
-  // const fetchAvailableClients = async () => {
-  //   try {
-  //     setIsAssigning(false);
-  //     setSelectedClientId(null);
-
-  //     // Fetch all available clients that aren't already assigned to this trainer
-  //     const response = await trainerApi.getAvailableClients();
-  //     console.log("available clinets", response)
-  //     // If API call fails, use mock data
-  //     if (!response || !Array.isArray(response)) {
-  //       setAvailableClients([
-  //         { id: "101", name: "Emma Wilson" },
-  //         { id: "102", name: "Olivia Martinez" },
-  //         { id: "103", name: "Sophia Thompson" },
-  //         { id: "104", name: "Isabella Garcia" },
-  //         { id: "105", name: "Mia Rodriguez" },
-  //       ]);
-  //       return;
-  //     }
-
-  //     setAvailableClients(
-  //       response.map((client) => ({
-  //         id: client.id,
-  //         name: client.name,
-  //       })),
-  //     );
-  //   } catch (err) {
-  //     console.error("Error fetching available clients:", err);
-  //     // Fallback to mock data
-  //     setAvailableClients([
-  //       { id: "101", name: "Emma Wilson" },
-  //       { id: "102", name: "Olivia Martinez" },
-  //       { id: "103", name: "Sophia Thompson" },
-  //       { id: "104", name: "Isabella Garcia" },
-  //       { id: "105", name: "Mia Rodriguez" },
-  //     ]);
-  //   }
-  // };
 
   const fetchAvailableClients = async () => {
     try {
@@ -120,23 +83,14 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
       // Fetch all available clients that aren't already assigned to this trainer
       const response = await trainerApi.getNotAssignedClients();
       // If API call fails, use mock data
-      // if (!response || !Array.isArray(response)) {
-      //   setAvailableClients([
-      //     { id: "101", name: "Emma Wilson" },
-      //     { id: "102", name: "Olivia Martinez" },
-      //     { id: "103", name: "Sophia Thompson" },
-      //     { id: "104", name: "Isabella Garcia" },
-      //     { id: "105", name: "Mia Rodriguez" },
-      //   ]);
-      //   return;
-      // }
-
-      // setAvailableClients(
-      //   response.map((client: any) => ({
-      //     id: client?.client?.profile?.id,
-      //     name: client?.client?.profile?.name,
-      //   })),
-      // );
+      if (!response || !Array.isArray(response)) {
+        setAvailableClients(
+          response.map((client: any) => ({
+            id: client?.client?.profile?.id,
+            name: client?.client?.profile?.name,
+          })),
+        );
+      }
     } catch (err) {
       console.error("Error fetching available clients:", err);
       // Fallback to mock data
@@ -151,7 +105,6 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
   };
 
   const assignClient = async () => {
-    console.log("assignClient function called");
 
     if (!selectedClientId) {
       console.log("No client selected");
@@ -159,34 +112,23 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
       return;
     }
 
-    console.log("Proceeding with client assignment, ID:", selectedClientId);
-
     try {
       setIsAssigning(true);
 
       // Get the logged-in trainer's ID (in a real app, this would come from auth context/redux)
       const trainerId = (await AsyncStorage.getItem("user_id")) || "2"; // Default to "2" if not found
 
-      console.log(
-        `Assigning client ${selectedClientId} to trainer ${trainerId}`,
-      );
-
       // Call the API to create the relationship
       console.log("About to call API with:", {
         clientId: selectedClientId,
         trainerId,
+        status: 'assigned'
       });
-      try {
-        const response = await trainerApi.assignClientToTrainer(
-          selectedClientId,
-          trainerId,
-          'assigned'
-        );
-        console.log("API response:", response);
-      } catch (apiError) {
-        console.error("Error in API call:", apiError);
-        throw apiError;
-      }
+      const response = await trainerApi.assignClientToTrainer(
+        selectedClientId,
+        trainerId,
+        'assigned'
+      );
 
       // Close modal and refresh client list
       setShowAddClientModal(false);
@@ -201,110 +143,6 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   };
 
-  // const fetchClients = async () => {
-  //   try {
-  //     setLoading(true);
-  //     setError(null);
-  //     const clientsData = await trainerApi.getClients();
-  //     // Transform API data to match the component's expected format
-  //     const formattedClients = clientsData.map((client: any) => ({
-  //       id: client.id,
-  //       name: client.name,
-  //       status: client.status || "active",
-  //       lastActive: formatDate(client.last_active) || "Today",
-  //       progress: client.progress || 0,
-  //       nextWorkout: "Today", // Default value as API doesn't provide this
-  //       weight: client.weight ? `${client.weight} lbs` : "Not recorded",
-  //       plan: client.plan || "Not assigned",
-  //       profilePicture:
-  //         client.profile_picture ||
-  //         `https://api.dicebear.com/7.x/avataaars/svg?seed=${client.name}&backgroundColor=ffdfbf`,
-  //     }));
-
-  //     setClients(formattedClients);
-  //   } catch (err) {
-  //     console.error("Error fetching clients:", err);
-  //     setError("Failed to load clients. Please try again.");
-  //     // Fallback to mock data if API fails
-  //     setClients([
-  //       {
-  //         id: "1",
-  //         name: "Sarah Johnson",
-  //         status: "active",
-  //         lastActive: "Today",
-  //         progress: 85,
-  //         nextWorkout: "Today",
-  //         weight: "145 lbs",
-  //         plan: "Full Body Strength",
-  //         profilePicture:
-  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
-  //       },
-  //       {
-  //         id: "2",
-  //         name: "Emily Davis",
-  //         status: "active",
-  //         lastActive: "Yesterday",
-  //         progress: 70,
-  //         nextWorkout: "Tomorrow",
-  //         weight: "132 lbs",
-  //         plan: "Weight Loss Program",
-  //         profilePicture:
-  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
-  //       },
-  //       {
-  //         id: "3",
-  //         name: "Jessica Wilson",
-  //         status: "pending",
-  //         lastActive: "3 days ago",
-  //         progress: 50,
-  //         nextWorkout: "Today",
-  //         weight: "158 lbs",
-  //         plan: "Cardio Focus",
-  //         profilePicture:
-  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
-  //       },
-  //       {
-  //         id: "4",
-  //         name: "Amanda Brown",
-  //         status: "inactive",
-  //         lastActive: "1 week ago",
-  //         progress: 30,
-  //         nextWorkout: "Not scheduled",
-  //         weight: "140 lbs",
-  //         plan: "Not assigned",
-  //         profilePicture:
-  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
-  //       },
-  //       {
-  //         id: "5",
-  //         name: "Michelle Lee",
-  //         status: "active",
-  //         lastActive: "Today",
-  //         progress: 90,
-  //         nextWorkout: "Tomorrow",
-  //         weight: "125 lbs",
-  //         plan: "Flexibility & Toning",
-  //         profilePicture:
-  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
-  //       },
-  //       {
-  //         id: "6",
-  //         name: "Rachel Taylor",
-  //         status: "active",
-  //         lastActive: "Today",
-  //         progress: 75,
-  //         nextWorkout: "Today",
-  //         weight: "138 lbs",
-  //         plan: "Muscle Building",
-  //         profilePicture:
-  //           "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
-  //       },
-  //     ]);
-  //   } finally {
-  //     setLoading(false);
-  //   }
-  // };
-
   const fetchClients = async () => {
     try {
       setLoading(true);
@@ -317,22 +155,25 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
 
       const parsedTrainerId = parseInt(trainerId, 10);
       const clientsData = await trainerApi.getClientsByTrainer(parsedTrainerId);
+
       const formattedClients = clientsData?.map((client: any) => {
         const clientObj = client?.client
+
+        const profilePicture = clientObj?.profile?.profile_picture_url ? `${API_BASE_URL}${clientObj?.profile?.profile_picture_url}` :
+          `https://picsum.photos/id/${clientObj?.id}/200/200`
         return {
           id: clientObj?.id,
           name: clientObj?.profile?.name,
           status: client?.status || "active",
-          lastActive: formatDate(client?.last_active) || "Today",
+          lastActive: formatDate(clientObj?.last_login) || "Today",
           progress: client?.progress || 0,
           nextWorkout: "Today",
           weight: clientObj?.profile?.weight ? `${clientObj?.profile?.weight} lbs` : "Not recorded",
           plan: clientObj?.plan || "Not assigned",
-          profilePicture:
-            clientObj?.profile?.profile_picture_url ||
-            `https://api.dicebear.com/7.x/avataaars/svg?seed=${clientObj?.profile?.name}&backgroundColor=ffdfbf`,
+          profilePicture: profilePicture,
         }
       })
+      // console.log(formattedClients)
       setClients(formattedClients);
     } catch (err) {
       console.error("Error fetching clients:", err);
@@ -417,40 +258,54 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   };
 
-  const formatDate = (dateString: string | undefined) => {
-    if (!dateString) return "Unknown";
+  // const formatDate = (dateString: string | undefined) => {
+  //   if (!dateString) return "Unknown";
 
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
+  //   try {
+  //     const date = new Date(dateString);
+  //     const now = new Date();
 
-      // Check if date is today
-      if (date.toDateString() === now.toDateString()) {
-        return "Today";
-      }
+  //     // Check if date is today
+  //     if (date.toDateString() === now.toDateString()) {
+  //       return "Today";
+  //     }
 
-      // Check if date is yesterday
-      const yesterday = new Date(now);
-      yesterday.setDate(now.getDate() - 1);
-      if (date.toDateString() === yesterday.toDateString()) {
-        return "Yesterday";
-      }
+  //     // Check if date is yesterday
+  //     const yesterday = new Date(now);
+  //     yesterday.setDate(now.getDate() - 1);
+  //     if (date.toDateString() === yesterday.toDateString()) {
+  //       return "Yesterday";
+  //     }
 
-      // Check if date is within the last week
-      const oneWeekAgo = new Date(now);
-      oneWeekAgo.setDate(now.getDate() - 7);
-      if (date > oneWeekAgo) {
-        const daysAgo = Math.floor(
-          (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
-        );
-        return `${daysAgo} days ago`;
-      }
+  //     // Check if date is within the last week
+  //     const oneWeekAgo = new Date(now);
+  //     oneWeekAgo.setDate(now.getDate() - 7);
+  //     if (date > oneWeekAgo) {
+  //       const daysAgo = Math.floor(
+  //         (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24),
+  //       );
+  //       return `${daysAgo} days ago`;
+  //     }
 
-      // Otherwise return formatted date
-      return date.toLocaleDateString();
-    } catch (e) {
-      return "Unknown date";
-    }
+  //     // Otherwise return formatted date
+  //     return date.toLocaleDateString();
+  //   } catch (e) {
+  //     return "Unknown date";
+  //   }
+  // };
+
+  const formatDate = (input: Date): string => {
+    if (!input) return ""; // or return 'Invalid Date'
+
+    const date: any = new Date(input);
+
+    if (isNaN(date)) return "Invalid Date";
+    return date?.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   };
 
   const filteredClients = clients?.filter((client) =>
@@ -668,7 +523,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                       Last active: {client.lastActive}
                     </Text>
 
-                    <View className="mt-2">
+                    {/* <View className="mt-2">
                       <View className="flex-row justify-between mb-1">
                         <Text className="text-xs text-gray-500">Progress</Text>
                         <Text className="text-xs font-medium">
@@ -681,7 +536,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                           style={{ width: `${client.progress}%` }}
                         />
                       </View>
-                    </View>
+                    </View> */}
 
                     <View className="flex-row justify-between mt-3">
                       <View className="flex-row items-center">
@@ -691,12 +546,12 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                         </Text>
                       </View>
 
-                      <View className="flex-row items-center">
+                      {/* <View className="flex-row items-center">
                         <Dumbbell size={14} color="#be185d" />
                         <Text className="text-sm ml-1 text-gray-700">
                           {client.plan}
                         </Text>
-                      </View>
+                      </View> */}
                     </View>
                   </View>
                 </View>

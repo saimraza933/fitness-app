@@ -36,6 +36,8 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
+import { API_BASE_URL } from "../common";
+import * as Notifications from 'expo-notifications';
 
 interface ProfileData {
   name: string;
@@ -57,9 +59,9 @@ const capitalizeFirstLetter = (str: any) => {
 
 const ProfileScreen = () => {
   const dispatch = useAppDispatch();
-  const { userRole } = useAppSelector((state) => state.auth);
+  const { userRole, userId } = useAppSelector((state) => state.auth);
   const { profile, isLoading } = useAppSelector((state) => state.user);
-  console.log(profile)
+
   const router = useRouter();
   const [isProfileUpdating, setIsProfileUpdating] = useState(false)
   const [isEditing, setIsEditing] = useState(false);
@@ -75,7 +77,6 @@ const ProfileScreen = () => {
   const [passwordError, setPasswordError] = useState("");
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [isPasswordUpdating, setIsPasswordUpdating] = useState(false)
-
   // Local state to track profile data while editing
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
@@ -93,11 +94,19 @@ const ProfileScreen = () => {
     dispatch(loadUserProfile());
   }, [dispatch]);
 
+  // useEffect(() => {
+  //   if (userRole === "client" && profileData?.notificationTime) {
+  //     scheduleDailyReminder(profileData.notificationTime);
+  //   }
+  // }, [profileData?.notificationTime]);
+
+
   // Update local state when profile data changes
   useEffect(() => {
     if (profile) {
-      const profilePicture = `https://fitness.pixelgateltd.com/${profile?.profilePicture}`
-      setProfileData({ ...profile, profilePicture, age: String(profile?.age) });
+      const profilePicture = profile?.profilePicture ? `${API_BASE_URL}${profile?.profilePicture}` :
+        `https://picsum.photos/id/${userId}/200/200`
+      setProfileData({ ...profile, profilePicture, age: String(profile?.age), notificationsEnabled: profile?.notificationsEnabled });
     }
   }, [profile]);
 
@@ -125,7 +134,7 @@ const ProfileScreen = () => {
       // }
 
       // Update Redux state
-      await dispatch(saveUserProfile(profileData));
+      await dispatch(saveUserProfile(apiProfileData));
       setIsEditing(false);
       Alert.alert("Success", "Profile updated successfully");
     } catch (error) {
@@ -329,6 +338,26 @@ const ProfileScreen = () => {
     }
   };
 
+  // const scheduleDailyReminder = async (notificationTime: any) => {
+  //   if (userRole !== 'client' || !notificationTime) return;
+
+  //   const [hour, minute] = notificationTime.split(":").map(Number);
+  //   console.log(hour, minute)
+  //   await Notifications.cancelAllScheduledNotificationsAsync();
+
+  //   await Notifications.scheduleNotificationAsync({
+  //     content: {
+  //       title: "💪 Workout Reminder",
+  //       body: "Don’t forget to complete your workout!",
+  //     },
+  //     trigger: {
+  //       hour,
+  //       minute,
+  //       repeats: true, // daily reminder
+  //     },
+  //   });
+  // };
+
   return (
     <ScrollView className="flex-1 bg-pink-50">
       <View className="bg-pink-800 pt-12 pb-6 px-4 items-center">
@@ -400,7 +429,6 @@ const ProfileScreen = () => {
         </Text>
         <Text className="text-pink-200">{capitalizeFirstLetter(userRole)} Account</Text>
       </View>
-
       <View className="p-4">
         <View className="flex-row justify-between items-center mb-4">
           <Text className="text-xl font-bold text-pink-800">
@@ -570,7 +598,7 @@ const ProfileScreen = () => {
 
                 {showTimePicker && (
                   <Modal
-                    transparent={true}
+                    transparent
                     animationType="fade"
                     visible={showTimePicker}
                     onRequestClose={() => setShowTimePicker(false)}
@@ -586,89 +614,71 @@ const ProfileScreen = () => {
                       onPress={() => setShowTimePicker(false)}
                     >
                       <View
-                        className="bg-white rounded-xl p-4 w-5/6 max-w-sm"
-                        style={{ elevation: 5 }}
+                        style={{
+                          backgroundColor: "#fff",
+                          borderRadius: 12,
+                          padding: 16,
+                          width: "83%",
+                          maxWidth: 400,
+                          elevation: 5,
+                        }}
                       >
-                        <Text className="text-lg font-bold text-pink-800 mb-4 text-center">
+                        <Text style={{ fontSize: 18, fontWeight: "bold", color: "#9d174d", textAlign: "center", marginBottom: 16 }}>
                           Select Time
                         </Text>
 
-                        {Platform.OS === "ios" ? (
-                          <View>
-                            <DateTimePicker
-                              testID="dateTimePicker"
-                              value={(() => {
-                                const [hours, minutes] =
-                                  profileData?.notificationTime?.split(":").map(Number);
-                                const date = new Date();
-                                date.setHours(hours);
-                                date.setMinutes(minutes);
-                                return date;
-                              })()}
-                              mode="time"
-                              display="spinner"
-                              onChange={(event, selectedDate) => {
-                                if (selectedDate) {
-                                  const hours = selectedDate
-                                    .getHours()
-                                    .toString()
-                                    .padStart(2, "0");
-                                  const minutes = selectedDate
-                                    .getMinutes()
-                                    .toString()
-                                    .padStart(2, "0");
-                                  setProfileData({
-                                    ...profileData,
-                                    notificationTime: `${hours}:${minutes}`,
-                                  });
-                                }
+                        <DateTimePicker
+                          testID="dateTimePicker"
+                          value={(() => {
+                            const now = new Date();
+                            const [h, m] = profileData?.notificationTime?.split(":").map(Number) ?? [now.getHours(), now.getMinutes()];
+                            now.setHours(h);
+                            now.setMinutes(m);
+                            now.setSeconds(0);
+                            return now;
+                          })()}
+                          mode="time"
+                          is24Hour={false}
+                          display={Platform.OS === "ios" ? "spinner" : "clock"}
+                          onChange={(event, selectedDate) => {
+                            if (Platform.OS === "ios") {
+                              if (selectedDate) {
+                                const hours = selectedDate.getHours().toString().padStart(2, "0");
+                                const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
+                                setProfileData({
+                                  ...profileData,
+                                  notificationTime: `${hours}:${minutes}`,
+                                });
+                              }
+                            } else {
+                              if (event.type === "set" && selectedDate) {
+                                const hours = selectedDate.getHours().toString().padStart(2, "0");
+                                const minutes = selectedDate.getMinutes().toString().padStart(2, "0");
+                                setProfileData({
+                                  ...profileData,
+                                  notificationTime: `${hours}:${minutes}`,
+                                });
+                                setShowTimePicker(false);
+                              } else if (event.type === "dismissed") {
+                                setShowTimePicker(false);
+                              }
+                            }
+                          }}
+                        />
+
+                        {Platform.OS === "ios" && (
+                          <View style={{ flexDirection: "row", justifyContent: "flex-end", marginTop: 16 }}>
+                            <TouchableOpacity
+                              style={{
+                                backgroundColor: "#db2777",
+                                paddingHorizontal: 16,
+                                paddingVertical: 8,
+                                borderRadius: 8,
                               }}
-                            />
-                            <View className="flex-row justify-end mt-4">
-                              <TouchableOpacity
-                                className="bg-pink-600 py-2 px-4 rounded-lg"
-                                onPress={() => setShowTimePicker(false)}
-                              >
-                                <Text className="text-white font-medium">
-                                  Done
-                                </Text>
-                              </TouchableOpacity>
-                            </View>
-                          </View>
-                        ) : (
-                          <View>
-                            <DateTimePicker
-                              testID="dateTimePicker"
-                              value={(() => {
-                                const [hours, minutes] = profileData?.notificationTime?.split(":").map(Number);
-                                const date = new Date();
-                                date.setHours(hours);
-                                date.setMinutes(minutes);
-                                return date;
-                              })()}
-                              mode="time"
-                              is24Hour={false}
-                              display="clock"
-                              onChange={(event, selectedDate) => {
-                                if (selectedDate && event.type === "set") {
-                                  const hours = selectedDate
-                                    .getHours()
-                                    .toString()
-                                    .padStart(2, "0");
-                                  const minutes = selectedDate
-                                    .getMinutes()
-                                    .toString()
-                                    .padStart(2, "0");
-                                  setProfileData({
-                                    ...profileData,
-                                    notificationTime: `${hours}:${minutes}`,
-                                  });
-                                  setShowTimePicker(false);
-                                } else if (event.type === "dismissed") {
-                                  setShowTimePicker(false);
-                                }
-                              }}
-                            />
+                              onPress={() => setShowTimePicker(false)}
+                            >
+                              <Text style={{ color: "white", fontWeight: "500" }}>Done</Text>
+                            </TouchableOpacity>
                           </View>
                         )}
                       </View>

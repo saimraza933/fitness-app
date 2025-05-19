@@ -181,7 +181,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
 
       const data = await trainerApi.getWorkoutPlansByTrainer(parsedTrainerId);
       console.log(data)
-      setWorkoutPlans([data])
+      setWorkoutPlans(data)
       // const plans = await trainerApi.getWorkoutPlans();
       // console.log("Fetched workout plans:", plans);
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -23,6 +23,141 @@ import {
   Play,
   PieChart,
 } from "lucide-react-native";
+import { clientApi } from "../services/api";
+import { useAppSelector } from "../hooks/redux";
+import { ActivityIndicator } from "react-native";
+
+const mockWorkoutData = [
+  {
+    "id": 7,
+    "clientId": 4,
+    "workoutPlanId": 14,
+    "assignedBy": 5,
+    "scheduledDate": "2025-05-18",
+    "completed": 0,
+    "workoutPlan": {
+      "id": 14,
+      "name": "Test Workout Plan",
+      "description": "This is test plan",
+      "difficulty": "Intermediate",
+      "durationMinutes": 30,
+      "caloriesBurned": 300,
+      "createdBy": 5,
+      "exercises": [
+        {
+          "id": 38,
+          "workoutPlanId": 14,
+          "exerciseId": 7,
+          "exercise": {
+            "id": 7,
+            "name": "Legs Press",
+            "description": "Exercie for legs",
+            "imageUrl": "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+            "instructions": "This is for legs",
+            "created_by": 0,
+            "createdAt": "2025-05-07T06:50:28.000Z",
+            "updatedAt": "2025-05-07T06:53:16.000Z"
+          },
+          "sets": 3,
+          "reps": 10,
+          "exerciseOrder": 1,
+          "createdAt": "2025-05-18T12:29:28.000Z",
+          "updatedAt": "2025-05-18T12:29:28.000Z"
+        }
+      ],
+      "createdAt": "2025-05-18T05:36:38.000Z",
+      "updatedAt": "2025-05-18T05:44:13.000Z"
+    },
+    "createdAt": "2025-05-18T09:27:15.000Z",
+    "updatedAt": "2025-05-18T09:27:15.000Z"
+  },
+  {
+    "id": 8,
+    "clientId": 4,
+    "workoutPlanId": 16,
+    "assignedBy": 5,
+    "scheduledDate": "2025-05-19",
+    "completed": 0,
+    "workoutPlan": {
+      "id": 16,
+      "name": "Full  Body Workout Plan",
+      "description": "This is test plan",
+      "difficulty": "Intermediate",
+      "durationMinutes": 45,
+      "caloriesBurned": 300,
+      "createdBy": 5,
+      "exercises": [
+        {
+          "id": 30,
+          "workoutPlanId": 16,
+          "exerciseId": 5,
+          "exercise": {
+            "id": 5,
+            "name": "Squats",
+            "description": "Breif Description",
+            "imageUrl": "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+            "instructions": "step by step implmetation",
+            "created_by": 0,
+            "createdAt": "2025-05-07T06:32:08.000Z",
+            "updatedAt": "2025-05-07T06:36:39.000Z"
+          },
+          "sets": 3,
+          "reps": 10,
+          "exerciseOrder": 1,
+          "createdAt": "2025-05-18T05:40:42.000Z",
+          "updatedAt": "2025-05-18T05:40:42.000Z"
+        }
+      ],
+      "createdAt": "2025-05-18T05:40:42.000Z",
+      "updatedAt": "2025-05-18T05:40:42.000Z"
+    },
+    "createdAt": "2025-05-19T11:45:19.000Z",
+    "updatedAt": "2025-05-19T11:45:19.000Z"
+  },
+  {
+    "id": 9,
+    "clientId": 4,
+    "workoutPlanId": 17,
+    "assignedBy": 5,
+    "scheduledDate": "2025-05-19",
+    "completed": 0,
+    "workoutPlan": {
+      "id": 17,
+      "name": "Test plan 2",
+      "description": "Test",
+      "difficulty": "Beginner",
+      "durationMinutes": 30,
+      "caloriesBurned": 200,
+      "createdBy": 5,
+      "exercises": [
+        {
+          "id": 33,
+          "workoutPlanId": 17,
+          "exerciseId": 10,
+          "exercise": {
+            "id": 10,
+            "name": "Test exercise ",
+            "description": "test description ",
+            "imageUrl": "https://picsum.photos/200/300?grayscale",
+            "instructions": "Test instructions ",
+            "created_by": 5,
+            "createdAt": "2025-05-18T11:43:43.000Z",
+            "updatedAt": "2025-05-18T12:31:21.000Z"
+          },
+          "sets": 3,
+          "reps": 10,
+          "exerciseOrder": 1,
+          "createdAt": "2025-05-18T12:21:26.000Z",
+          "updatedAt": "2025-05-18T12:21:26.000Z"
+        }
+      ],
+      "createdAt": "2025-05-18T12:21:26.000Z",
+      "updatedAt": "2025-05-18T12:21:26.000Z"
+    },
+    "createdAt": "2025-05-19T11:45:50.000Z",
+    "updatedAt": "2025-05-19T11:45:50.000Z"
+  }
+]
 
 interface WorkoutExercise {
   id: string;
@@ -43,49 +178,28 @@ interface MealPlan {
   imageUrl: string;
 }
 
+function formatDateToYYYYMMDD(isoDateString: any) {
+  if (!isoDateString) return "";
+
+  try {
+    const date = new Date(isoDateString);
+    return date.toISOString().split("T")[0]; // Returns "YYYY-MM-DD"
+  } catch (error) {
+    console.error("Invalid date string:", isoDateString);
+    return "";
+  }
+}
+
+
 const MyPlan = () => {
   const router = useRouter();
+  const { userId } = useAppSelector(state => state.auth)
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
   const [showNutritionInfo, setShowNutritionInfo] = useState(false);
-  const [workouts, setWorkouts] = useState<WorkoutExercise[]>([
-    {
-      id: "1",
-      name: "Squats",
-      sets: 3,
-      reps: 15,
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
-    },
-    {
-      id: "2",
-      name: "Push-ups",
-      sets: 3,
-      reps: 10,
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
-    },
-    {
-      id: "3",
-      name: "Lunges",
-      sets: 3,
-      reps: 12,
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
-    },
-    {
-      id: "4",
-      name: "Plank",
-      sets: 3,
-      reps: 30,
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
-    },
-  ]);
+  const [isLoading, setIsLoading] = useState(false)
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [workoutDetails, setWorkoutDetails] = useState<any>(null)
 
   const [meals, setMeals] = useState<MealPlan[]>([
     {
@@ -135,18 +249,60 @@ const MyPlan = () => {
     },
   ]);
 
-  const toggleWorkoutCompletion = (id: string) => {
-    setWorkouts(
-      workouts.map((workout) =>
-        workout.id === id
-          ? { ...workout, completed: !workout.completed }
-          : workout,
-      ),
+  useEffect(() => {
+    fetchWorkouts(currentDate)
+  }, [])
+
+
+  const fetchWorkouts = async (date?: any) => {
+    const newdate: any = date ? date : new Date();
+    const formattedDate = formatDateToYYYYMMDD(newdate)
+    setIsLoading(true)
+    try {
+      const response = await clientApi.getClientWorkoutsAssignmentsWithExercises(Number(userId), formattedDate)
+      setWorkouts(response)
+    } catch (error) {
+      console.error(error)
+      setWorkouts(mockWorkoutData)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleShowDetails = (workout: any) => {
+    setWorkoutDetails(workout)
+    setShowWorkoutDetails(true)
+  }
+  const toggleWorkoutCompletion = async (workoutPlanId: any, exerciseId: any, completed: any) => {
+
+    Alert.alert(
+      'Confirm Action',
+      `Are you sure you want to mark this workout as ${completed ? 'incomplete' : 'complete'}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const status = completed === 0 ? 1 : 0
+              await clientApi.markExerciseComplete(Number(workoutPlanId), exerciseId, status)
+              fetchWorkouts()
+            } catch (error) {
+              console.log(error)
+              Alert.alert('Error', 'Something went wrong.')
+            }
+          },
+        },
+      ],
+      { cancelable: false }
     );
   };
 
   // Workout details data
-  const workoutDetails = {
+  const mockworkoutDetails = {
     title: "Full Body Strength",
     duration: "45 min",
     calories: "320",
@@ -278,13 +434,14 @@ const MyPlan = () => {
       month: "long",
       day: "numeric",
     };
-    return date.toLocaleDateString(undefined, options);
+    return date?.toLocaleDateString(undefined, options);
   };
 
-  const changeDate = (days: number) => {
+  const changeDate = async (days: number) => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
     setCurrentDate(newDate);
+    await fetchWorkouts(newDate)
   };
 
   return (
@@ -315,11 +472,11 @@ const MyPlan = () => {
           <View className="flex-row items-center mb-4">
             <Dumbbell size={20} color="#be185d" />
             <Text className="text-lg font-semibold text-pink-800 ml-2">
-              Today's Workout
+              {formatDate(currentDate)} Workout's
             </Text>
           </View>
 
-          {workouts.map((workout) => (
+          {/* {workouts.map((workout) => (
             <TouchableOpacity
               key={workout.id}
               className="flex-row items-center justify-between py-3 border-b border-gray-100"
@@ -352,7 +509,65 @@ const MyPlan = () => {
             onPress={() => setShowWorkoutDetails(true)}
           >
             <Text className="text-pink-800 font-medium">View Details</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+
+          {
+            isLoading ? (
+              <View className="items-center justify-center">
+                <ActivityIndicator size="large" color="#be185d" />
+              </View>
+            ) :
+              workouts?.length > 0 ?
+                workouts.map((workout: any, index) => (
+                  <View key={index} className="mb-3">
+                    <Text className="text-base font-semibold text-pink-800">
+                      {workout?.workoutPlan?.name}
+                    </Text>
+
+                    {workout?.workoutPlan?.exercises?.map((item: any, subIndex: any) => {
+                      const exercise = item?.exercise;
+                      return (
+                        <TouchableOpacity
+                          key={subIndex}
+                          className="flex-row items-center justify-between py-3 border-b border-gray-100"
+                          onPress={() => toggleWorkoutCompletion(item?.workoutPlanId, item?.exerciseId, item?.completed)}
+                        >
+                          <View className="flex-row items-center">
+                            {exercise?.imageUrl && (
+                              <Image
+                                source={{ uri: exercise.imageUrl }}
+                                className="w-12 h-12 rounded-lg mr-3"
+                              />
+                            )}
+                            <View>
+                              <Text className="font-medium text-gray-800">
+                                {exercise?.name}
+                              </Text>
+                              <Text className="text-gray-500">
+                                {item.sets} sets × {item.reps} reps
+                              </Text>
+                            </View>
+                          </View>
+                          {item?.completed ? (
+                            <CheckCircle size={24} color="#be185d" />
+                          ) : (
+                            <Circle size={24} color="#d1d5db" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    <TouchableOpacity
+                      className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+                      onPress={() => handleShowDetails(workout)}
+                    >
+                      <Text className="text-pink-800 font-medium">View Details</Text>
+                    </TouchableOpacity>
+                  </View>
+                )) : (
+                  <Text className="text-center">No workout found. Ask your trainer to assign workout.</Text>
+                )
+          }
         </View>
 
         {/* Diet Recommendations */}
@@ -429,31 +644,31 @@ const MyPlan = () => {
             {/* Workout Header */}
             <View className="bg-pink-800 p-6">
               <Text className="text-2xl font-bold text-white mb-2">
-                {workoutDetails.title}
+                {workoutDetails?.workoutPlan?.name}
               </Text>
               <View className="flex-row mt-2">
                 <View className="flex-row items-center mr-4">
                   <Clock size={16} color="#f9a8d4" />
                   <Text className="text-pink-200 ml-1">
-                    {workoutDetails.duration}
+                    {workoutDetails?.workoutPlan?.durationMinutes}
                   </Text>
                 </View>
                 <View className="flex-row items-center">
                   <Flame size={16} color="#f9a8d4" />
                   <Text className="text-pink-200 ml-1">
-                    {workoutDetails.calories} cal
+                    {workoutDetails?.workoutPlan?.caloriesBurned} cal
                   </Text>
                 </View>
               </View>
               <Text className="text-pink-200 mt-2">
-                {workoutDetails.difficulty}
+                {workoutDetails?.workoutPlan?.difficulty}
               </Text>
             </View>
 
             {/* Workout Description */}
             <View className="p-4 bg-white mb-4">
               <Text className="text-gray-700">
-                {workoutDetails.description}
+                {workoutDetails?.workoutPlan?.description}
               </Text>
             </View>
 
@@ -463,37 +678,40 @@ const MyPlan = () => {
                 Exercises
               </Text>
 
-              {workoutDetails.exercises.map((exercise) => (
-                <View
-                  key={exercise.id}
-                  className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden"
-                >
-                  {exercise.imageUrl && (
-                    <Image
-                      source={{ uri: exercise.imageUrl }}
-                      className="w-full h-48"
-                      resizeMode="cover"
-                    />
-                  )}
-                  <View className="p-4">
-                    <Text className="text-lg font-bold text-gray-800 mb-1">
-                      {exercise.name}
-                    </Text>
-                    <Text className="text-pink-600 font-medium mb-2">
-                      {exercise.sets} sets × {exercise.reps}{" "}
-                      {exercise.reps > 1 ? "reps" : "rep"}
-                    </Text>
-                    <Text className="text-gray-600">
-                      Perform {exercise.sets} sets of {exercise.reps}{" "}
-                      repetitions with proper form.
-                    </Text>
+              {workoutDetails?.workoutPlan?.exercises.map((item: any, subIndex: any) => {
+                const exercise = item?.exercise
+                return (
+                  <View
+                    key={exercise.id}
+                    className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden"
+                  >
+                    {exercise.imageUrl && (
+                      <Image
+                        source={{ uri: exercise.imageUrl }}
+                        className="w-full h-48"
+                        resizeMode="cover"
+                      />
+                    )}
+                    <View className="p-4">
+                      <Text className="text-lg font-bold text-gray-800 mb-1">
+                        {exercise.name}
+                      </Text>
+                      <Text className="text-pink-600 font-medium mb-2">
+                        {item.sets} sets × {item.reps}{" "}
+                        {item.reps > 1 ? "reps" : "rep"}
+                      </Text>
+                      <Text className="text-gray-600">
+                        Perform {item.sets} sets of {item.reps}{" "}
+                        repetitions with proper form.
+                      </Text>
+                    </View>
                   </View>
-                </View>
-              ))}
+                )
+              })}
             </View>
 
             {/* Start Workout Button */}
-            <View className="p-4 mb-8">
+            {/* <View className="p-4 mb-8">
               <TouchableOpacity
                 className="bg-pink-600 py-4 rounded-xl flex-row justify-center items-center"
                 onPress={() => {
@@ -518,7 +736,7 @@ const MyPlan = () => {
                   Start Workout
                 </Text>
               </TouchableOpacity>
-            </View>
+            </View> */}
           </ScrollView>
         </View>
       </Modal>

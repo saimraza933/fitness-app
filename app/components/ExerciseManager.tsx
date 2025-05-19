@@ -76,7 +76,7 @@ const ExerciseManager = () => {
       const parsedTrainerId = parseInt(trainerId, 10);
       // Call the API to get exercises
       const data = await trainerApi.getExercisesByTrainer(parsedTrainerId);
-      setExercises([data]);
+      setExercises(data);
       setLoading(false);
     } catch (err) {
       console.error("Error fetching exercises:", err);
