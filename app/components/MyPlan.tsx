@@ -24,8 +24,9 @@ import {
   PieChart,
 } from "lucide-react-native";
 import { clientApi } from "../services/api";
-import { useAppSelector } from "../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
 import { ActivityIndicator } from "react-native";
+import { setCurrentDietPlan } from "../store/slices/userSlice";
 
 const mockWorkoutData = [
   {
@@ -190,9 +191,9 @@ function formatDateToYYYYMMDD(isoDateString: any) {
   }
 }
 
-
 const MyPlan = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch()
   const { userId } = useAppSelector(state => state.auth)
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
@@ -200,57 +201,16 @@ const MyPlan = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [workoutDetails, setWorkoutDetails] = useState<any>(null)
-
-  const [meals, setMeals] = useState<MealPlan[]>([
-    {
-      id: "1",
-      name: "Breakfast",
-      time: "8:00 AM",
-      description: "Oatmeal with berries and nuts",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400&q=80",
-    },
-    {
-      id: "2",
-      name: "Snack",
-      time: "10:30 AM",
-      description: "Greek yogurt with honey",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80",
-    },
-    {
-      id: "3",
-      name: "Lunch",
-      time: "1:00 PM",
-      description: "Grilled chicken salad with avocado",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
-    },
-    {
-      id: "4",
-      name: "Snack",
-      time: "4:00 PM",
-      description: "Apple with almond butter",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1568093858174-0f391ea21c45?w=400&q=80",
-    },
-    {
-      id: "5",
-      name: "Dinner",
-      time: "7:00 PM",
-      description: "Salmon with roasted vegetables",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&q=80",
-    },
-  ]);
+  const [isMealLoading, setisMealLoading] = useState(false)
+  const [meals, setMeals] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchWorkouts(currentDate)
+    (async () => {
+      await Promise.all([
+        fetchWorkouts(currentDate),
+        fetchTodayDietPlans(currentDate)
+      ])
+    })()
   }, [])
 
 
@@ -266,6 +226,20 @@ const MyPlan = () => {
       setWorkouts(mockWorkoutData)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchTodayDietPlans = async (date: any) => {
+    setisMealLoading(true)
+    const newdate: any = date ? date : new Date();
+    const formattedDate = formatDateToYYYYMMDD(newdate)
+    try {
+      const response = await clientApi.getClientsDietPlans(Number(userId), formattedDate)
+      setMeals(response)
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setisMealLoading(false)
     }
   }
 
@@ -299,6 +273,22 @@ const MyPlan = () => {
       ],
       { cancelable: false }
     );
+  };
+
+  const convertTimeStringToDate = (timeString: any) => {
+
+    if (!timeString || typeof timeString !== 'string') return new Date();
+
+    const [hours, minutes, seconds] = timeString.split(':').map(Number);
+    // fallback to current date with time if parsing fails
+    if (
+      isNaN(hours) || isNaN(minutes) || isNaN(seconds) ||
+      hours > 23 || minutes > 59 || seconds > 59
+    ) return new Date();
+
+    const now = new Date();
+    now.setHours(hours, minutes, seconds, 0);
+    return now;
   };
 
   // Workout details data
@@ -441,8 +431,37 @@ const MyPlan = () => {
     const newDate = new Date(currentDate);
     newDate.setDate(newDate.getDate() + days);
     setCurrentDate(newDate);
-    await fetchWorkouts(newDate)
+    await Promise.all([fetchWorkouts(newDate), fetchTodayDietPlans(newDate)])
   };
+
+  const toggleMeal = async (assignmentId: any, mealId: any, completed: any) => {
+    // console.log(assignmentId, mealId)
+    Alert.alert(
+      'Confirm Action',
+      `Are you sure you want to mark this meal as ${completed ? 'incomplete' : 'complete'}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const status = completed === 0 ? true : false
+              await clientApi.markMealComplete(Number(userId), assignmentId, mealId, status)
+              fetchTodayDietPlans(currentDate)
+            } catch (error) {
+              console.log(error)
+              Alert.alert('Error', 'Something went wrong.')
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
 
   return (
     <ScrollView className="flex-1 bg-pink-50">
@@ -579,48 +598,90 @@ const MyPlan = () => {
             </Text>
           </View>
 
-          {meals.map((meal) => (
-            <TouchableOpacity
-              key={meal.id}
-              className="flex-row items-center justify-between py-3 border-b border-gray-100"
-              onPress={() => toggleMealCompletion(meal.id)}
-            >
-              <View className="flex-row items-center">
-                <Image
-                  source={{ uri: meal.imageUrl }}
-                  className="w-12 h-12 rounded-lg mr-3"
-                />
-                <View>
-                  <View className="flex-row items-center">
-                    <Text className="font-medium text-gray-800">
-                      {meal.name}
-                    </Text>
-                    <View className="flex-row items-center ml-2">
-                      <Clock size={12} color="#9ca3af" />
-                      <Text className="text-xs text-gray-500 ml-1">
-                        {meal.time}
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className="text-gray-500">{meal.description}</Text>
-                </View>
+          {
+            isMealLoading ? (
+              <View className="items-center justify-center">
+                <ActivityIndicator size="large" color="#be185d" />
               </View>
-              {meal.completed ? (
-                <CheckCircle size={24} color="#be185d" />
-              ) : (
-                <Circle size={24} color="#d1d5db" />
-              )}
-            </TouchableOpacity>
-          ))}
+            ) :
+              meals?.length > 0 ?
+                meals.map((plan, index) => (
+                  <View key={index} className="mb-3">
+                    <Text className="text-base font-semibold text-pink-800">
+                      {plan?.name}
+                    </Text>
 
-          <TouchableOpacity
+                    {plan?.meals?.map((item: any, subIndex: any) => {
+
+                      return (
+                        <TouchableOpacity
+                          key={subIndex}
+                          className="flex-row items-center justify-between py-3 border-b border-gray-100"
+                          onPress={() => {
+                            console.log(item)
+                            if (item?.completion) {
+                              toggleMeal(
+                                item.completion.clientDietAssignmentId,
+                                item.completion.mealId,
+                                item.completion.completed
+                              );
+                            } else {
+                              alert("No completion object for this meal");
+                            }
+                          }}
+                        >
+                          <View className="flex-row items-center">
+                            {item?.imageUrl && (
+                              <Image
+                                source={{ uri: item.imageUrl }}
+                                className="w-12 h-12 rounded-lg mr-3"
+                              />
+                            )}
+                            <View>
+                              <Text className="font-medium text-gray-800">
+                                {item?.name}- {convertTimeStringToDate(item.time).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </Text>
+                              <Text className="text-gray-500">
+                                {item?.description}
+                              </Text>
+                            </View>
+                          </View>
+                          {item?.completion?.completed == 1 ? (
+                            <CheckCircle size={24} color="#be185d" />
+                          ) : (
+                            <Circle size={24} color="#d1d5db" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    <TouchableOpacity
+                      className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+                      onPress={() => {
+                        dispatch(setCurrentDietPlan(plan))
+                        router.push({
+                          pathname: "/nutrition-info",
+                        })
+                      }}
+                    >
+                      <Text className="text-pink-800 font-medium">View Nutrition Info</Text>
+                    </TouchableOpacity>
+                  </View>
+                )) : (
+                  <Text className="text-center">No meals found. Ask your trainer to assign today's meals.</Text>
+                )
+          }
+          {/* <TouchableOpacity
             className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
             onPress={() => setShowNutritionInfo(true)}
           >
             <Text className="text-pink-800 font-medium">
               View Nutrition Info
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
       </View>
 

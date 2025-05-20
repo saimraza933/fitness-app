@@ -152,6 +152,63 @@ const ProfileScreen = () => {
     });
   };
 
+  // const pickImage = async () => {
+  //   try {
+  //     // Request permission to access the photo library
+  //     const { status } =
+  //       await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+  //     if (status !== "granted") {
+  //       Alert.alert(
+  //         "Permission needed",
+  //         "Please grant permission to access your photos",
+  //       );
+  //       return;
+  //     }
+
+  //     setIsUploading(true);
+
+  //     // Launch the image picker
+  //     const result = await ImagePicker.launchImageLibraryAsync({
+  //       mediaTypes: ImagePicker.MediaTypeOptions.Images,
+  //       allowsEditing: true,
+  //       aspect: [1, 1],
+  //       quality: 0.7,
+  //     });
+
+  //     if (!result.canceled && result.assets && result.assets.length > 0) {
+  //       // Update profile data with the selected image URI
+  //       const imageUri = result.assets[0].uri;
+
+  //       try {
+  //         console.log(imageUri)
+  //         const updatedImageUrl = await dispatch(
+  //           updateProfilePicture(imageUri),
+  //         ).unwrap();
+  //         console.log(updatedImageUrl)
+  //         setProfileData({
+  //           ...profileData,
+  //           profilePicture: updatedImageUrl || imageUri,
+  //         });
+  //       } catch (error) {
+  //         console.error("Error updating profile picture:", error);
+  //         Alert.alert("Error", "Failed to upload image to server");
+
+  //         // Still update local state with the local URI
+  //         setProfileData({
+  //           ...profileData,
+  //           profilePicture: imageUri,
+  //         });
+  //       }
+  //     }
+  //   } catch (error) {
+  //     console.error("Error picking image:", error);
+  //     Alert.alert("Error", "Failed to upload image");
+  //   } finally {
+  //     setIsUploading(false);
+  //   }
+  // };
+
   const pickImage = async () => {
     try {
       // Request permission to access the photo library
@@ -177,16 +234,19 @@ const ProfileScreen = () => {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
+        const { uri, fileName, mimeType } = result.assets[0];
         // Update profile data with the selected image URI
-        const imageUri = result.assets[0].uri;
+        const imageUri = uri;
+        const imageObj = {
+          uri,
+          name: fileName ?? 'upload.jpg',
+          type: mimeType ?? 'image/jpeg',
+        }
 
         try {
-          // Update Redux state - this will call the API with form data
           const updatedImageUrl = await dispatch(
-            updateProfilePicture(imageUri),
+            updateProfilePicture(imageObj),
           ).unwrap();
-
-          // Update local state with the returned URL or the local URI if no URL returned
           setProfileData({
             ...profileData,
             profilePicture: updatedImageUrl || imageUri,
@@ -369,6 +429,8 @@ const ProfileScreen = () => {
               </View>
             ) : (
               // 'https://fitness.pixelgateltd.com/' + 
+              // 'file:///data/user/0/host.exp.exponent/cache/ExperienceData/%2540anonymous%252Ftest-tempo-42905671-a8bd-41cf-b726-c2db500ca5f9/ImagePicker/26807a6f-eb3d-4724-893f-132a74eb9244.jpeg'
+
               <Image
                 source={{
                   uri:

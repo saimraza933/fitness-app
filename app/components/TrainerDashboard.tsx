@@ -26,6 +26,8 @@ import {
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
 import { API_BASE_URL } from "../common";
+import MealsManager from "./MealsManager";
+import DietPlanManager from "./DietPlanManager";
 
 interface Client {
   id: number | string;
@@ -45,6 +47,14 @@ interface TrainerDashboardProps {
   onClientSelect?: (client: any) => void;
 }
 
+const tabs = [
+  { key: 'clients', label: 'Clients' },
+  { key: 'workouts', label: 'Workout Plans' },
+  { key: 'exercises', label: 'Exercises' },
+  { key: 'diet', label: 'Diet Plans' },
+  { key: 'meal', label: 'Meal' },
+] as const;
+
 const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,9 +70,8 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     string | number | null
   >(null);
   const [isAssigning, setIsAssigning] = useState(false);
-  const [activeTab, setActiveTab] = useState<
-    "clients" | "workouts" | "exercises"
-  >("clients");
+  type TabKey = (typeof tabs)[number]['key'];
+  const [activeTab, setActiveTab] = React.useState<TabKey>('clients');
 
   useEffect(() => {
     fetchClients();
@@ -369,8 +378,10 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     }
   };
 
+
+
   return (
-    <View className="flex-1 bg-pink-50">
+    <View className="flex-1 bg-pink-50 ">
       <View className="p-4 bg-pink-800">
         <Text className="text-2xl font-bold text-white mb-2">
           Trainer Dashboard
@@ -381,40 +392,47 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
       </View>
 
       {/* Tab Navigation */}
-      <View className="flex-row border-b border-gray-200 bg-white">
-        <TouchableOpacity
-          className={`flex-1 py-3 ${activeTab === "clients" ? "border-b-2 border-pink-600" : ""}`}
-          onPress={() => setActiveTab("clients")}
+      <View style={{ borderBottomWidth: 1, borderBottomColor: '#e5e7eb' }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingVertical: 0,
+            minHeight: 36,
+          }}
+          style={{ minHeight: 36 }}
         >
-          <Text
-            className={`text-center font-medium ${activeTab === "clients" ? "text-pink-800" : "text-gray-500"}`}
-          >
-            Clients
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className={`flex-1 py-3 ${activeTab === "workouts" ? "border-b-2 border-pink-600" : ""}`}
-          onPress={() => setActiveTab("workouts")}
-        >
-          <Text
-            className={`text-center font-medium ${activeTab === "workouts" ? "text-pink-800" : "text-gray-500"}`}
-          >
-            Workout Plans
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          className={`flex-1 py-3 ${activeTab === "exercises" ? "border-b-2 border-pink-600" : ""}`}
-          onPress={() => setActiveTab("exercises")}
-        >
-          <Text
-            className={`text-center font-medium ${activeTab === "exercises" ? "text-pink-800" : "text-gray-500"}`}
-          >
-            Exercises
-          </Text>
-        </TouchableOpacity>
+          {tabs.map((tab, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => setActiveTab(tab.key)}
+              style={{
+                paddingHorizontal: 16,
+                height: 36,
+                justifyContent: 'center',
+                borderBottomWidth: activeTab === tab.key ? 2 : 0,
+                borderBottomColor: activeTab === tab.key ? '#db2777' : 'transparent',
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 14,
+                  lineHeight: 18,
+                  color: activeTab === tab.key ? '#9d174d' : '#6b7280',
+                  textAlign: 'center',
+                }}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
+
+
+
 
       {activeTab === "clients" ? (
         <>
@@ -569,9 +587,14 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
         </>
       ) : activeTab === "workouts" ? (
         <WorkoutPlanManager />
-      ) : (
+      ) : activeTab === "exercises" ? (
         <ExerciseManager />
-      )}
+      ) : activeTab === "meal" ? (
+        <MealsManager />
+      ) : activeTab === "diet" ? (
+        <DietPlanManager />
+      ) : <Text >No tab content found</Text>
+      }
 
       {/* Add Client Modal */}
       <Modal

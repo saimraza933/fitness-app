@@ -27,7 +27,8 @@ import {
 } from "lucide-react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { clientApi } from "../services/api";
-import { useAppSelector } from "../hooks/redux";
+import { useAppDispatch, useAppSelector } from "../hooks/redux";
+import { setCurrentDietPlan } from "../store/slices/userSlice";
 
 interface WorkoutItem {
   id: string;
@@ -189,90 +190,184 @@ const mockWorkoutDetails = {
     "This full-body workout focuses on building strength and endurance with a mix of compound exercises.",
   // exercises: workouts,
 };
+const mockMealData = [
+  {
+    "id": 5,
+    "name": "Plan 3",
+    "description": "Test hai ye",
+    "totalCalories": 30,
+    "proteinPercentage": "60.00",
+    "carbsPercentage": "20.00",
+    "fatPercentage": "50.00",
+    "createdAt": "2025-05-20T16:38:10.000Z",
+    "meals": [
+      {
+        "id": 5,
+        "name": "Test Meal ",
+        "time": "22:09:42",
+        "description": "Test description ",
+        "calories": 30,
+        "protein": "80.00",
+        "carbs": "50.00",
+        "fat": "30.00",
+        "fiber": "20.00",
+        "imageUrl": "https://picsum.photos/200/300",
+        "completion": {
+          "id": 3,
+          "clientDietAssignmentId": 3,
+          "mealId": 5,
+          "completed": 0,
+          "completedAt": null,
+          "createdAt": "2025-05-20T17:33:25.000Z",
+          "updatedAt": "2025-05-20T17:33:25.000Z",
+          "meal": {
+            "id": 5,
+            "dietPlanId": 5,
+            "name": "Test Meal ",
+            "time": "22:09:42",
+            "description": "Test description ",
+            "calories": 30,
+            "protein": "80.00",
+            "carbs": "50.00",
+            "fat": "30.00",
+            "fiber": "20.00",
+            "imageUrl": "https://picsum.photos/200/300",
+            "createdAt": "2025-05-20T17:10:35.000Z",
+            "updatedAt": "2025-05-20T17:25:51.000Z"
+          }
+        },
+        "ingredients": [
+          {
+            "name": "Egs",
+            "quantity": "2"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "name": "Meal plan 2",
+        "time": "22:26:41",
+        "description": "Meal plan 2",
+        "calories": 20,
+        "protein": "30.00",
+        "carbs": "20.00",
+        "fat": "38.00",
+        "fiber": "25.00",
+        "imageUrl": "https://picsum.photos/200/300",
+        "completion": {
+          "id": 4,
+          "clientDietAssignmentId": 3,
+          "mealId": 6,
+          "completed": 0,
+          "completedAt": null,
+          "createdAt": "2025-05-20T17:33:25.000Z",
+          "updatedAt": "2025-05-20T17:33:25.000Z",
+          "meal": {
+            "id": 6,
+            "dietPlanId": 5,
+            "name": "Meal plan 2",
+            "time": "22:26:41",
+            "description": "Meal plan 2",
+            "calories": 20,
+            "protein": "30.00",
+            "carbs": "20.00",
+            "fat": "38.00",
+            "fiber": "25.00",
+            "imageUrl": "https://picsum.photos/200/300",
+            "createdAt": "2025-05-20T17:27:27.000Z",
+            "updatedAt": "2025-05-20T17:27:27.000Z"
+          }
+        },
+        "ingredients": [
+          {
+            "name": "Potato ",
+            "quantity": "2"
+          }
+        ]
+      }
+    ]
+  }
+]
+
+const convertTimeStringToDate = (timeString: any) => {
+
+  if (!timeString || typeof timeString !== 'string') return new Date();
+
+  const [hours, minutes, seconds] = timeString.split(':').map(Number);
+  // fallback to current date with time if parsing fails
+  if (
+    isNaN(hours) || isNaN(minutes) || isNaN(seconds) ||
+    hours > 23 || minutes > 59 || seconds > 59
+  ) return new Date();
+
+  const now = new Date();
+  now.setHours(hours, minutes, seconds, 0);
+  return now;
+};
 
 const ClientHome = () => {
   const router = useRouter();
+  const dispatch = useAppDispatch()
   const { userId } = useAppSelector(state => state.auth)
   const [weight, setWeight] = useState("");
   const [weightSaved, setWeightSaved] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [showWorkoutDetails, setShowWorkoutDetails] = useState(false);
   const [workoutDetails, setWorkoutDetails] = useState<any>(null)
+  const [mealsHistory, setMealsHistory] = useState(null)
   const [weightHistory, setWeightHistory] = useState<
     { date: string; weight: string }[]
   >([]);
   const [workouts, setWorkouts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false)
 
-  const [meals, setMeals] = useState<MealItem[]>([
-    {
-      id: "1",
-      name: "Breakfast",
-      time: "8:00 AM",
-      description: "Oatmeal with berries and nuts",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=400&q=80",
-    },
-    {
-      id: "2",
-      name: "Snack",
-      time: "10:30 AM",
-      description: "Greek yogurt with honey",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=400&q=80",
-    },
-    {
-      id: "3",
-      name: "Lunch",
-      time: "1:00 PM",
-      description: "Grilled chicken salad with avocado",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&q=80",
-    },
-    {
-      id: "4",
-      name: "Snack",
-      time: "4:00 PM",
-      description: "Apple with almond butter",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1568093858174-0f391ea21c45?w=400&q=80",
-    },
-    {
-      id: "5",
-      name: "Dinner",
-      time: "7:00 PM",
-      description: "Salmon with roasted vegetables",
-      completed: false,
-      imageUrl:
-        "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&q=80",
-    },
-  ]);
+  const [meals, setMeals] = useState<any>(
+  );
 
   useEffect(() => {
-    fetchTodayWorkouts()
+    (async () => {
+      setIsLoading(true)
+      await Promise.all([
+        fetchTodayWorkouts(),
+        fetchTodayDietPlans()
+      ])
+      setIsLoading(false)
+    })()
+
   }, [])
 
   const fetchTodayWorkouts = async () => {
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
-    setIsLoading(true)
     try {
       const response = await clientApi.getClientWorkoutsAssignmentsWithExercises(Number(userId), formattedDate)
       setWorkouts(response)
     } catch (error) {
-      setWorkouts(mockWorkoutData)
-    } finally {
-      setIsLoading(false)
+      console.log(error)
+    }
+  }
+
+  const fetchTodayDietPlans = async () => {
+    const today = new Date();
+    const formattedDate = today.toISOString().split('T')[0];
+
+    try {
+      const response = await clientApi.getClientsDietPlans(Number(userId), formattedDate)
+      console.log(response)
+      setMeals(response)
+    } catch (error) {
+      console.log(error)
     }
   }
 
   const handleShowDetails = (workout: any) => {
     setWorkoutDetails(workout)
     setShowWorkoutDetails(true)
+  }
+
+  const handleShowNutritionDeatails = (plan: any) => {
+    setMealsHistory(plan)
+    // setShowWorkoutDetails(true)
   }
 
   const toggleWorkoutCompletion = async (workoutPlanId: any, exerciseId: any, completed: any) => {
@@ -303,9 +398,37 @@ const ClientHome = () => {
     );
   };
 
+  const toggleMeal = async (assignmentId: any, mealId: any, completed: any) => {
+    // console.log(assignmentId, mealId)
+    Alert.alert(
+      'Confirm Action',
+      `Are you sure you want to mark this meal as ${completed ? 'incomplete' : 'complete'}?`,
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Yes',
+          onPress: async () => {
+            try {
+              const status = completed === 0 ? true : false
+              await clientApi.markMealComplete(Number(userId), assignmentId, mealId, status)
+              fetchTodayDietPlans()
+            } catch (error) {
+              console.log(error)
+              Alert.alert('Error', 'Something went wrong.')
+            }
+          },
+        },
+      ],
+      { cancelable: false }
+    );
+  };
+
   const toggleMealCompletion = (id: string) => {
     setMeals(
-      meals.map((meal) =>
+      meals.map((meal: any) =>
         meal.id === id ? { ...meal, completed: !meal.completed } : meal,
       ),
     );
@@ -515,7 +638,7 @@ const ClientHome = () => {
             </Text>
           </View>
 
-          {meals.map((meal) => (
+          {/* {meals.map((meal) => (
             <TouchableOpacity
               key={meal.id}
               className="flex-row items-center justify-between py-3 border-b border-gray-100"
@@ -541,14 +664,97 @@ const ClientHome = () => {
                 <Circle size={24} color="#d1d5db" />
               )}
             </TouchableOpacity>
-          ))}
+          ))} */}
 
-          <TouchableOpacity
+          {
+            isLoading ? (
+              <View className="items-center justify-center">
+                <ActivityIndicator size="large" color="#be185d" />
+              </View>
+            ) :
+              meals?.length > 0 ?
+                meals.map((plan, index) => (
+                  <View key={index} className="mb-3">
+                    <Text className="text-base font-semibold text-pink-800">
+                      {plan?.name}
+                    </Text>
+
+                    {plan?.meals?.map((item: any, subIndex: any) => {
+
+                      return (
+                        <TouchableOpacity
+                          key={subIndex}
+                          className="flex-row items-center justify-between py-3 border-b border-gray-100"
+                          onPress={() => {
+                            if (item?.completion) {
+                              toggleMeal(
+                                item.completion.clientDietAssignmentId,
+                                item.completion.mealId,
+                                item.completion.completed
+                              );
+                            } else {
+                              alert("No completion object for this meal");
+                            }
+                          }}
+                        >
+                          <View className="flex-row items-center">
+                            {item?.imageUrl && (
+                              <Image
+                                source={{ uri: item.imageUrl }}
+                                className="w-12 h-12 rounded-lg mr-3"
+                              />
+                            )}
+                            <View>
+                              <Text className="font-medium text-gray-800">
+                                {item?.name}- {convertTimeStringToDate(item.time).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </Text>
+                              <Text className="text-gray-500">
+                                {item?.description}
+                              </Text>
+                            </View>
+                          </View>
+                          {item?.completion?.completed == 1 ? (
+                            <CheckCircle size={24} color="#be185d" />
+                          ) : (
+                            <Circle size={24} color="#d1d5db" />
+                          )}
+                        </TouchableOpacity>
+                      );
+                    })}
+
+                    <TouchableOpacity
+                      className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
+                      onPress={() => {
+                        dispatch(setCurrentDietPlan(plan))
+                        router.push({
+                          pathname: "/nutrition-info",
+                        })
+                      }}
+                    >
+                      <Text className="text-pink-800 font-medium">View Nutrition Info</Text>
+                    </TouchableOpacity>
+                  </View>
+                )) : (
+                  <Text className="text-center">No meals found. Ask your trainer to assign today's meals.</Text>
+                )
+          }
+
+          {/* <TouchableOpacity
             className="mt-4 bg-pink-100 py-2 px-4 rounded-lg self-start"
-            onPress={() => router.push("/nutrition-info")}
+            onPress={() => router.push({
+              pathname: "/nutrition-info",
+              params: {
+                plan: plan
+              }
+            })}
+
           >
             <Text className="text-pink-800 font-medium">View Nutrition Info</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
+
         </View>
 
         {/* <TouchableOpacity
@@ -557,9 +763,9 @@ const ClientHome = () => {
         >
           <Text className="text-white font-semibold text-lg">View Progress</Text>
         </TouchableOpacity> */}
-      </ScrollView>
+      </ScrollView >
       {/* Workout Details Modal */}
-      <Modal
+      <Modal Modal
         visible={showWorkoutDetails}
         animationType="slide"
         onRequestClose={() => setShowWorkoutDetails(false)}
@@ -673,8 +879,8 @@ const ClientHome = () => {
             </View> */}
           </ScrollView>
         </View>
-      </Modal>
-    </View>
+      </Modal >
+    </View >
   );
 };
 
