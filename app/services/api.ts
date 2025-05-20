@@ -82,21 +82,22 @@ export const profileApi = {
     return response.data;
   },
 
-  updateProfilePicture: async (imageUri: string) => {
+  updateProfilePicture: async (imageObj: any) => {
     // Create form data for image upload
     const formData = new FormData();
 
     // Get filename from URI
-    const uriParts = imageUri.split("/");
-    const fileName = uriParts[uriParts.length - 1];
+    // const uriParts = imageUri.split("/");
+    // const fileName = uriParts[uriParts.length - 1];
 
     // Append the image to form data
     // @ts-ignore - FormData expects specific types
-    formData.append("profile_picture", {
-      uri: imageUri,
-      name: fileName,
-      type: "image/jpeg", // Assuming JPEG format, adjust if needed
-    });
+    // formData.append("profile_picture", {
+    //   uri: imageUri,
+    //   name: fileName,
+    //   type: "image/jpeg", // Assuming JPEG format, adjust if needed
+    // });
+    formData.append("profile_picture", imageObj);
 
     const response = await api.put("/profile", formData, {
       headers: {
@@ -129,8 +130,14 @@ export const clientApi = {
   },
 
   markWorkoutComplete: async (clientId: number, assignmentId: number, exerciseId: number, completed: boolean) => {
-    console.log(completed)
+
     const response = await api.put(`/clients/${clientId}/workout-assignments/${assignmentId}/exercises/${exerciseId}`, { completed });
+    return response.data;
+  },
+
+  markMealComplete: async (clientId: number, assignmentId: number, mealId: number, completed: boolean) => {
+    const response = await api.put(`/clients/${clientId}/diet-assignments/${assignmentId}/meals/${mealId}`, { completed });
+    // console.log(response.data)
     return response.data;
   },
 
@@ -148,6 +155,15 @@ export const clientApi = {
 
   getClientWorkoutsAssignmentsWithExercises: async (clientId: number, fromDate?: string,) => {
     let url = `/clients/${clientId}/workout-assignments?`
+    if (fromDate) {
+      url += `&fromDate=${fromDate}`
+    }
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  getClientsDietPlans: async (clientId: number, fromDate?: string) => {
+    let url = `/diet-plans/client/${clientId}?`
     if (fromDate) {
       url += `&fromDate=${fromDate}`
     }
@@ -214,6 +230,52 @@ export const trainerApi = {
     const response = await api.get(url);
     return response.data;
   },
+
+  deleteDietPlan: async (planId: number) => {
+    const response = await api.delete(`/diet-plans/${planId}`);
+    return response.data;
+  },
+  getTrainerDietPlans: async (trainerId: number) => {
+    const response = await api.get(`/diet-plans/trainer/${trainerId}`);
+    return response.data;
+  },
+
+  createDietPlan: async (data: any) => {
+    const response = await api.post(`/diet-plans`, data);
+    return response.data;
+  },
+
+  updateDietPlan: async (planId: any, data: any) => {
+    const response = await api.put(`/diet-plans/${planId}`, data);
+    return response.data;
+  },
+
+  getTrainerMeals: async (trainerId: number) => {
+    const response = await api.get(`/diet-plans/meal/trainer/${trainerId}`);
+    return response.data;
+  },
+
+  createMeal: async (data: any) => {
+    const response = await api.post(`/diet-plans/meal`, data);
+    return response.data;
+  },
+
+  updateMeal: async (mealId: any, data: any) => {
+    const response = await api.put(`/diet-plans/meal/${mealId}`, data);
+    return response.data;
+  },
+
+  assignDietPlanToClient: async (clientId: number, data: any) => {
+    const response = await api.post(`/clients/${clientId}/diet-assignments`, data);
+    return response.data;
+  },
+
+
+  deleteMeal: async (mealId: number) => {
+    const response = await api.delete(`/diet-plans/meal/${mealId}`);
+    return response.data;
+  },
+
 
 
   // Update client notes

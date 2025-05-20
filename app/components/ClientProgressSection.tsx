@@ -626,7 +626,7 @@ const ClientProgressSection = ({
                 </View>
               </>
             ) : (
-              <Text>No weight trend found</Text>
+              <Text className="text-center">No weight trend found</Text>
             )
           }
         </View>
@@ -692,7 +692,7 @@ const ClientProgressSection = ({
                     </View>
                   </View>
                 )) : (
-                  <Text>No workout completion found</Text>
+                  <Text className="text-center">No workout completion found</Text>
                 )
           }
         </View>
@@ -917,7 +917,7 @@ const ClientProgressSection = ({
                         </View>
                       </>
                     ) : (
-                      <Text>No weight history found</Text>
+                      <Text className="text-center">No weight history found</Text>
                     )
                   }
 
@@ -1009,7 +1009,7 @@ const ClientProgressSection = ({
                         </View>
                       </>
                     ) : (
-                      <Text>No workout completion found</Text>
+                      <Text className="text-center">No workout completion found</Text>
                     )
                   }
 

@@ -28,6 +28,7 @@ import {
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppSelector } from "../hooks/redux";
 
 interface ClientDetailsProps {
   client?: {
@@ -52,7 +53,17 @@ const weeklyGoals = [
   { id: "3", title: "Drink 2L water daily", completed: false },
   { id: "4", title: "Sleep 7+ hours", completed: false },
 ];
-
+const mockPlans = [
+  {
+    "id": 1,
+    "name": "High-Protein Power",
+    "description": "Boost muscle recovery",
+    "totalCalories": 2200,
+    "proteinPercentage": 40.00,
+    "carbsPercentage": 30.00,
+    "fatPercentage": 30.00,
+  }
+]
 // Mock progress logs
 const progressLogs = [
   {
@@ -89,6 +100,7 @@ const progressLogs = [
 
 
 const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
+  const { userId } = useAppSelector(state => state.auth)
   const [selectedPlan, setSelectedPlan] = useState("");
   const [selectedPlanId, setSelectedPlanId] = useState<string | number | null>(
     null,
@@ -120,8 +132,13 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const [isAssigningGoal, setIsAssigningGoal] = useState(false)
   const [goalsList, setGoalsList] = useState<any>([])
   const [clientWeightsLogs, setClientWeightsLogs] = useState<any>([])
-
-
+  const [dietPlansList, setDietPlansList] = useState<any>([])
+  const [loading, setLoading] = useState(false);
+  const [showDietPlanDatePicker, setShowDietPlanDatePicker] = useState(false)
+  const [selectedDietPlan, setSelectedDietPlan] = useState(null)
+  const [dietPlanScheduledDate, setDietPlanScheduledDate] = useState(new Date())
+  const [showDietDropdown, setShowDietDropdown] = useState(false)
+  const [isAssigningDiet, setIsAssigningDiet] = useState(false)
   // Mock data for the client if not provided
   const clientData = client || {
     id: "1",
@@ -143,7 +160,8 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
       await Promise.all([
         fetchWorkoutPlans(),
         fetchWeeklyGoals(),
-        fetchClientWeightLogs()
+        fetchClientWeightLogs(),
+        fetchDietPlans()
       ])
     })()
 
@@ -171,54 +189,29 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const fetchWorkoutPlans = async () => {
     try {
       setLoadingPlans(true);
-      // console.log("Fetching workout plans...");
-      const trainerId = await AsyncStorage.getItem('user_id');
-
-      if (trainerId === null) {
-        throw new Error('Trainer ID not found in storage');
-      }
-      const parsedTrainerId = parseInt(trainerId, 10);
-
-      const data = await trainerApi.getWorkoutPlansByTrainer(parsedTrainerId);
-      console.log(data)
+      const data = await trainerApi.getWorkoutPlansByTrainer(Number(userId));
       setWorkoutPlans(data)
-      // const plans = await trainerApi.getWorkoutPlans();
-      // console.log("Fetched workout plans:", plans);
-
-      // if (data && Array.isArray(data)) {
-      //   const formattedPlans = data.map((plan) => ({
-      //     id: plan.id,
-      //     name: plan.name,
-      //   }));
-      //   setWorkoutPlans(formattedPlans);
-
-      //   // If we have plans, set the first one as selected by default
-      //   // if (formattedPlans.length > 0) {
-      //   //   setSelectedPlan(formattedPlans[0].name);
-      //   // }
-      // } else {
-      //   throw new Error("Invalid response format");
-      // }
     } catch (error) {
       console.error("Error fetching workout plans:", error);
-      // Fallback to mock data
-      const mockPlans = [
-        { id: "1", name: "Full Body Strength" },
-        { id: "2", name: "Weight Loss Program" },
-        { id: "3", name: "Cardio Focus" },
-        { id: "4", name: "Muscle Building" },
-        { id: "5", name: "Flexibility & Toning" },
-      ];
-      setWorkoutPlans(mockPlans);
-
-      // Set the first mock plan as selected
-      if (selectedPlan === "") {
-        setSelectedPlan(mockPlans[0].name);
-      }
     } finally {
       setLoadingPlans(false);
     }
   };
+
+  const fetchDietPlans = async () => {
+    try {
+      setLoading(true);
+      const res = await trainerApi.getTrainerDietPlans(Number(userId))
+      if (Array.isArray(res)) {
+        setDietPlansList(res)
+      }
+    } catch (error) {
+      console.log(error)
+    } finally {
+      setLoading(false);
+    }
+  }
+
 
   const toggleGoalCompletion = (id: string) => {
     // In a real app, this would update the state
@@ -254,12 +247,17 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
     });
   };
 
-
   // Handle date change
   const onDateChange = (event: any, selectedDate?: Date) => {
     const currentDate = selectedDate || scheduledDate;
     setShowDatePicker(Platform.OS === "ios");
     setScheduledDate(currentDate);
+  };
+
+  const onDietPlanDateChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || dietPlanScheduledDate;
+    setShowDietPlanDatePicker(Platform.OS === "ios");
+    setDietPlanScheduledDate(currentDate);
   };
 
   const onGoalStartDateChange = (event: any, selectedDate?: Date) => {
@@ -279,9 +277,6 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
         Alert.alert("Error", "Please select a workout plan first.");
         return;
       }
-
-
-      // Validate scheduled date
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -291,26 +286,14 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
       }
 
       setIsAssigning(true);
-
-      // Format date for API
       const formattedDate = formatDateForApi(scheduledDate);
 
-      console.log(
-        `Assigning plan: ${selectedPlan} (ID: ${selectedPlanId}) to client ID: ${clientData.id} on date: ${formattedDate}`,
-      );
-      const trainerId = await AsyncStorage.getItem('user_id');
-
-      if (trainerId === null) {
-        throw new Error('Trainer ID not found in storage');
-      }
-      const parsedTrainerId = parseInt(trainerId, 10);
-      // Call the API to assign the workout plan with scheduled date
       try {
         const response = await trainerApi.assignClientWorkout(
           clientData.id,
           selectedPlanId,
           formattedDate,
-          parsedTrainerId
+          Number(userId)
         );
 
         console.log("Assignment successful:", response);
@@ -321,19 +304,62 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
           `${selectedPlan} has been scheduled for ${clientData.name} on ${formatDate(scheduledDate)}`,
         );
       } catch (apiError) {
-        console.error("API error:", apiError);
         Alert.alert(
           "Error",
           "Failed to assign workout plan. Please try again.",
         );
       }
     } catch (error) {
-      console.error("Error assigning plan:", error);
       Alert.alert("Error", "Failed to assign workout plan. Please try again.");
     } finally {
       setIsAssigning(false);
     }
   };
+
+  const assignDietPlan = async () => {
+    try {
+      if (!selectedDietPlan) {
+        Alert.alert("Error", "Please select a diet plan first.");
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (dietPlanScheduledDate < today) {
+        Alert.alert("Error", "Please select a date today or in the future.");
+        return;
+      }
+
+      setIsAssigningDiet(true);
+      const formattedDate = formatDateForApi(dietPlanScheduledDate);
+      try {
+        const data = {
+          dietPlanId: selectedDietPlan?.id,
+          scheduledDate: formattedDate,
+          assignedBy: Number(userId)
+        }
+
+        await trainerApi.assignDietPlanToClient(Number(client?.id), data)
+        setShowDietDropdown(false);
+        setSelectedDietPlan(null)
+        setDietPlanScheduledDate(new Date())
+        Alert.alert(
+          "Success",
+          `${selectedDietPlan?.name} has been scheduled for ${client?.name} on ${formatDate(dietPlanScheduledDate)}`,
+        );
+      } catch (apiError) {
+        Alert.alert(
+          "Error",
+          "Failed to assign Diet plan. Please try again.",
+        );
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to assign diet plan. Please try again.");
+    } finally {
+      setIsAssigningDiet(false);
+    }
+  }
 
   const handleAssignGoal = async () => {
     if (!goalTitle?.trim()) {
@@ -480,7 +506,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
             </View>
           </View>
 
-          {/* Assign Plan */}
+          {/* Assign workout Plan */}
           <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
             <Text className="text-lg font-semibold text-pink-800 mb-3">
               Assign Workout Plan
@@ -608,10 +634,143 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                   ? "Loading..."
                   : isAssigning
                     ? "Assigning..."
-                    : "Assign Plan"}
+                    : "Assign Workout"}
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Assign Diet Plan */}
+          <View className="bg-white rounded-xl shadow-sm p-4 mb-6">
+            <Text className="text-lg font-semibold text-pink-800 mb-3">
+              Assign Diet Plan
+            </Text>
+
+            <View>
+              <TouchableOpacity
+                className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white mb-3"
+                onPress={(event) => {
+                  const target = event.target as any;
+                  target.measure((x, y, width, height, pageX, pageY) => {
+                    setDropdownPosition({
+                      top: pageY + height,
+                      left: pageX,
+                      width: width,
+                    });
+                    setShowDietDropdown(true);
+                  });
+                }}
+              >
+                <Text className="text-gray-800">
+                  {loading
+                    ? "Loading diet plans..."
+                    : selectedDietPlan?.name || "Select a diet plan"}
+                </Text>
+                <ChevronDown size={20} color="#9ca3af" />
+              </TouchableOpacity>
+
+              {/* Schedule Date Selector */}
+              <View className="mb-3">
+                <Text className="text-gray-700 mb-2 font-medium">
+                  Schedule Date
+                </Text>
+                <TouchableOpacity
+                  className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
+                  onPress={() => setShowDietPlanDatePicker(true)}
+                >
+                  <Text className="text-gray-800">
+                    {formatDate(dietPlanScheduledDate)}
+                  </Text>
+                  <CalendarDays size={20} color="#9ca3af" />
+                </TouchableOpacity>
+
+                {showDietPlanDatePicker && (
+                  <View className="bg-white p-2 rounded-lg mt-2">
+                    <DateTimePicker
+                      value={dietPlanScheduledDate}
+                      mode="date"
+                      display={Platform.OS === "ios" ? "spinner" : "default"}
+                      onChange={onDietPlanDateChange}
+                      minimumDate={new Date()}
+                    />
+                    {Platform.OS === "ios" && (
+                      <TouchableOpacity
+                        className="bg-pink-600 py-2 px-4 rounded-lg self-end mt-2"
+                        onPress={() => setShowDietPlanDatePicker(false)}
+                      >
+                        <Text className="text-white font-medium">Done</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+              </View>
+
+              <Modal
+                visible={showDietDropdown}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowDietDropdown(false)}
+              >
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  activeOpacity={1}
+                  onPress={() => setShowDietDropdown(false)}
+                >
+                  <View
+                    className="bg-white border border-gray-300 rounded-lg shadow-md"
+                    style={{
+                      position: "absolute",
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      width: dropdownPosition.width,
+                      zIndex: 9999,
+                      elevation: 5,
+                    }}
+                  >
+                    {loading ? (
+                      <View className="p-3 items-center">
+                        <ActivityIndicator size="small" color="#be185d" />
+                        <Text className="text-gray-500 mt-1">
+                          Loading plans...
+                        </Text>
+                      </View>
+                    ) : (
+                      dietPlansList.map((plan: any) => (
+                        <TouchableOpacity
+                          key={plan.id}
+                          className={`p-3 border-b border-gray-100 ${plan.id === selectedDietPlan?.id ? "bg-pink-50" : ""}`}
+                          onPress={() => {
+                            setSelectedDietPlan(plan);
+                            setShowDietDropdown(false);
+                          }}
+                        >
+                          <Text
+                            className={`${plan.id === selectedDietPlan?.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                          >
+                            {plan.name}
+                          </Text>
+                        </TouchableOpacity>
+                      ))
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+            </View>
+
+            <TouchableOpacity
+              className={`bg-pink-600 py-2 rounded-lg items-center mt-3 ${!selectedDietPlan?.id || loading || isAssigningDiet ? "opacity-50" : ""}`}
+              onPress={assignDietPlan}
+              disabled={!selectedDietPlan?.id || isAssigningDiet}
+            >
+              <Text className="text-white font-medium">
+                {loading
+                  ? "Loading..."
+                  : isAssigningDiet
+                    ? "Assigning..."
+                    : "Assign Diet"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
 
           {/* Trainer Notes */}
           <View className="bg-white rounded-xl shadow-sm p-4 mb-6">

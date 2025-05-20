@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { profileApi } from "../../services/api";
+import { API_BASE_URL } from "@/app/common";
 
 interface ProfileData {
   name: string;
@@ -18,12 +19,14 @@ interface UserState {
   profile: ProfileData | null;
   isLoading: boolean;
   error: string | null;
+  currentDietPlan: any
 }
 
 const initialState: UserState = {
   profile: null,
   isLoading: false,
   error: null,
+  currentDietPlan: null
 };
 
 // Default profiles for demo purposes
@@ -151,7 +154,7 @@ export const saveUserProfile = createAsyncThunk(
 // Update profile picture
 export const updateProfilePicture = createAsyncThunk(
   "user/updateProfilePicture",
-  async (imageUri: string, { getState, dispatch }) => {
+  async (imageObj: any, { getState, dispatch }) => {
     try {
       // @ts-ignore - We know the state has user
       const currentProfile = getState().user.profile;
@@ -160,40 +163,20 @@ export const updateProfilePicture = createAsyncThunk(
         throw new Error("Profile not loaded");
       }
 
-      try {
-        // Update profile picture via API
-        const updatedData = await profileApi.updateProfilePicture(imageUri);
+      const updatedData = await profileApi.updateProfilePicture(imageObj);
+      const profilePictureUrl = `${API_BASE_URL}${updatedData?.profile_picture_url}` || imageObj?.uri;
+      const updatedProfile = {
+        ...currentProfile,
+        profilePicture: profilePictureUrl,
+      };
+      // profile()
+      // @ts-ignore - We know the state has auth
+      const userRole = getState().auth.userRole;
+      const storageKey =
+        userRole === "trainer" ? "trainer_profile" : "user_profile";
+      await AsyncStorage.setItem(storageKey, JSON.stringify(updatedProfile));
 
-        // Get the profile picture URL from the response
-        const profilePictureUrl = updatedData.profile_picture_url || imageUri;
-
-        const updatedProfile = {
-          ...currentProfile,
-          profilePicture: profilePictureUrl,
-        };
-
-        // Update local storage with the new profile
-        // @ts-ignore - We know the state has auth
-        const userRole = getState().auth.userRole;
-        const storageKey =
-          userRole === "trainer" ? "trainer_profile" : "user_profile";
-        await AsyncStorage.setItem(storageKey, JSON.stringify(updatedProfile));
-
-        return profilePictureUrl;
-      } catch (apiError) {
-        console.log("API error when updating profile picture", apiError);
-
-        // Fall back to local update if API fails
-        const updatedProfile = {
-          ...currentProfile,
-          profilePicture: imageUri,
-        };
-
-        // Save the updated profile to local storage
-        await dispatch(saveUserProfile(updatedProfile));
-
-        return imageUri;
-      }
+      return profilePictureUrl;
     } catch (error) {
       console.error("Error updating profile picture:", error);
       throw error;
@@ -236,7 +219,11 @@ export const deleteUserProfile = createAsyncThunk(
 const userSlice = createSlice({
   name: "user",
   initialState,
-  reducers: {},
+  reducers: {
+    setCurrentDietPlan: (state, action) => {
+      state.currentDietPlan = action.payload
+    }
+  },
   extraReducers: (builder) => {
     builder
       // Load profile
@@ -277,5 +264,5 @@ const userSlice = createSlice({
       });
   },
 });
-
+export const { setCurrentDietPlan } = userSlice.actions;
 export default userSlice.reducer;

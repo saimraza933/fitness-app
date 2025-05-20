@@ -161,7 +161,7 @@ export const signup = createAsyncThunk(
     try {
       // Call the API
       const response = await authApi.register(userData);
-
+      console.log(response)
       // Store auth data in AsyncStorage
       await AsyncStorage.setItem("auth_token", response.token);
       await AsyncStorage.setItem("user_id", String(response.id));

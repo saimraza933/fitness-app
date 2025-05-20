@@ -9,8 +9,29 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ArrowLeft, Utensils, Clock, PieChart } from "lucide-react-native";
+import { useLocalSearchParams } from 'expo-router';
+import { useAppSelector } from "./hooks/redux";
+
+const convertTimeStringToDate = (timeString: any) => {
+
+  if (!timeString || typeof timeString !== 'string') return new Date();
+
+  const [hours, minutes, seconds] = timeString.split(':').map(Number);
+  // fallback to current date with time if parsing fails
+  if (
+    isNaN(hours) || isNaN(minutes) || isNaN(seconds) ||
+    hours > 23 || minutes > 59 || seconds > 59
+  ) return new Date();
+
+  const now = new Date();
+  now.setHours(hours, minutes, seconds, 0);
+  return now;
+};
+
 
 export default function NutritionInfoScreen() {
+  const { currentDietPlan } = useAppSelector(state => state.user)
+
   const router = useRouter();
 
   const nutritionPlan = {
@@ -135,10 +156,10 @@ export default function NutritionInfoScreen() {
         {/* Nutrition Plan Header */}
         <View className="bg-pink-800 p-6">
           <Text className="text-2xl font-bold text-white mb-2">
-            {nutritionPlan.title}
+            {currentDietPlan?.name}
           </Text>
           <Text className="text-pink-200">
-            {nutritionPlan.totalCalories} calories per day
+            {currentDietPlan?.totalCalories} calories per day
           </Text>
         </View>
 
@@ -155,7 +176,7 @@ export default function NutritionInfoScreen() {
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-pink-600 items-center justify-center">
                 <Text className="text-white font-bold">
-                  {nutritionPlan.macros.protein}%
+                  {currentDietPlan?.proteinPercentage}%
                 </Text>
               </View>
               <Text className="mt-2 font-medium text-gray-700">Protein</Text>
@@ -164,7 +185,7 @@ export default function NutritionInfoScreen() {
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-purple-500 items-center justify-center">
                 <Text className="text-white font-bold">
-                  {nutritionPlan.macros.carbs}%
+                  {currentDietPlan?.carbsPercentage}%
                 </Text>
               </View>
               <Text className="mt-2 font-medium text-gray-700">Carbs</Text>
@@ -173,7 +194,7 @@ export default function NutritionInfoScreen() {
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-blue-500 items-center justify-center">
                 <Text className="text-white font-bold">
-                  {nutritionPlan.macros.fat}%
+                  {currentDietPlan?.fatPercentage}%
                 </Text>
               </View>
               <Text className="mt-2 font-medium text-gray-700">Fat</Text>
@@ -187,30 +208,33 @@ export default function NutritionInfoScreen() {
             Daily Meals
           </Text>
 
-          {nutritionPlan.meals.map((meal, index) => (
+          {currentDietPlan?.meals?.map((meal, index) => (
             <View
               key={index}
               className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden"
             >
               <Image
-                source={{ uri: meal.imageUrl }}
+                source={{ uri: meal?.imageUrl }}
                 className="w-full h-48"
                 resizeMode="cover"
               />
               <View className="p-4">
                 <View className="flex-row justify-between items-center mb-2">
                   <Text className="text-lg font-bold text-gray-800">
-                    {meal.name}
+                    {meal?.name}
                   </Text>
                   <View className="flex-row items-center">
                     <Clock size={14} color="#9ca3af" />
-                    <Text className="text-gray-500 ml-1">{meal.time}</Text>
+                    <Text className="text-gray-500 ml-1">{convertTimeStringToDate(meal?.time)?.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}</Text>
                   </View>
                 </View>
 
-                <Text className="text-gray-700 mb-3">{meal.description}</Text>
+                <Text className="text-gray-700 mb-3">{meal?.description}</Text>
                 <Text className="text-pink-600 font-medium mb-2">
-                  {meal.calories} calories
+                  {meal?.calories} calories
                 </Text>
 
                 {/* Nutrients */}
@@ -218,20 +242,20 @@ export default function NutritionInfoScreen() {
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Protein</Text>
                     <Text className="font-medium">
-                      {meal.nutrients.protein}
+                      {meal?.protein}
                     </Text>
                   </View>
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Carbs</Text>
-                    <Text className="font-medium">{meal.nutrients.carbs}</Text>
+                    <Text className="font-medium">{meal?.carbs}</Text>
                   </View>
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Fat</Text>
-                    <Text className="font-medium">{meal.nutrients.fat}</Text>
+                    <Text className="font-medium">{meal?.fat}</Text>
                   </View>
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Fiber</Text>
-                    <Text className="font-medium">{meal.nutrients.fiber}</Text>
+                    <Text className="font-medium">{meal?.fiber}</Text>
                   </View>
                 </View>
 
@@ -240,9 +264,9 @@ export default function NutritionInfoScreen() {
                   Ingredients:
                 </Text>
                 <View>
-                  {meal.ingredients.map((ingredient, idx) => (
+                  {meal.ingredients.map((ingredient: any, idx: number) => (
                     <Text key={idx} className="text-gray-600 text-sm">
-                      • {ingredient}
+                      • {ingredient?.name} {ingredient?.quantity}
                     </Text>
                   ))}
                 </View>
