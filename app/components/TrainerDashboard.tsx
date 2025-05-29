@@ -28,6 +28,7 @@ import { trainerApi } from "../services/api";
 import { API_BASE_URL } from "../common";
 import MealsManager from "./MealsManager";
 import DietPlanManager from "./DietPlanManager";
+import { useAppSelector } from "../hooks/redux";
 
 interface Client {
   id: number | string;
@@ -56,7 +57,7 @@ const tabs = [
 ] as const;
 
 const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
-
+  const { userId } = useAppSelector(state => state.auth)
   const [searchQuery, setSearchQuery] = useState("");
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,9 +100,11 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
             name: client?.client?.profile?.name,
           })),
         );
+      } else {
+        setAvailableClients([]);
       }
     } catch (err) {
-      console.error("Error fetching available clients:", err);
+      // console.error("Error fetching available clients:", err);
       // Fallback to mock data
       setAvailableClients([
         { id: "101", name: "Emma Wilson" },
@@ -123,19 +126,9 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
 
     try {
       setIsAssigning(true);
-
-      // Get the logged-in trainer's ID (in a real app, this would come from auth context/redux)
-      const trainerId = (await AsyncStorage.getItem("user_id")) || "2"; // Default to "2" if not found
-
-      // Call the API to create the relationship
-      console.log("About to call API with:", {
-        clientId: selectedClientId,
-        trainerId,
-        status: 'assigned'
-      });
       const response = await trainerApi.assignClientToTrainer(
         selectedClientId,
-        trainerId,
+        Number(userId),
         'assigned'
       );
 
@@ -156,15 +149,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     try {
       setLoading(true);
       setError(null);
-      const trainerId = await AsyncStorage.getItem('user_id');
-
-      if (trainerId === null) {
-        throw new Error('Trainer ID not found in storage');
-      }
-
-      const parsedTrainerId = parseInt(trainerId, 10);
-      const clientsData = await trainerApi.getClientsByTrainer(parsedTrainerId);
-
+      const clientsData = await trainerApi.getClientsByTrainer(Number(userId));
       const formattedClients = clientsData?.map((client: any) => {
         const clientObj = client?.client
 
@@ -182,86 +167,87 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
           profilePicture: profilePicture,
         }
       })
+
       // console.log(formattedClients)
       setClients(formattedClients);
     } catch (err) {
       console.error("Error fetching clients:", err);
       setError("Failed to load clients. Please try again.");
       // Fallback to mock data if API fails
-      setClients([
-        {
-          id: "1",
-          name: "Sarah Johnson",
-          status: "active",
-          lastActive: "Today",
-          progress: 85,
-          nextWorkout: "Today",
-          weight: "145 lbs",
-          plan: "Full Body Strength",
-          profilePicture:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
-        },
-        {
-          id: "2",
-          name: "Emily Davis",
-          status: "active",
-          lastActive: "Yesterday",
-          progress: 70,
-          nextWorkout: "Tomorrow",
-          weight: "132 lbs",
-          plan: "Weight Loss Program",
-          profilePicture:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
-        },
-        {
-          id: "3",
-          name: "Jessica Wilson",
-          status: "pending",
-          lastActive: "3 days ago",
-          progress: 50,
-          nextWorkout: "Today",
-          weight: "158 lbs",
-          plan: "Cardio Focus",
-          profilePicture:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
-        },
-        {
-          id: "4",
-          name: "Amanda Brown",
-          status: "inactive",
-          lastActive: "1 week ago",
-          progress: 30,
-          nextWorkout: "Not scheduled",
-          weight: "140 lbs",
-          plan: "Not assigned",
-          profilePicture:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
-        },
-        {
-          id: "5",
-          name: "Michelle Lee",
-          status: "active",
-          lastActive: "Today",
-          progress: 90,
-          nextWorkout: "Tomorrow",
-          weight: "125 lbs",
-          plan: "Flexibility & Toning",
-          profilePicture:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
-        },
-        {
-          id: "6",
-          name: "Rachel Taylor",
-          status: "active",
-          lastActive: "Today",
-          progress: 75,
-          nextWorkout: "Today",
-          weight: "138 lbs",
-          plan: "Muscle Building",
-          profilePicture:
-            "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
-        },
-      ]);
+      // setClients([
+      //   {
+      //     id: "1",
+      //     name: "Sarah Johnson",
+      //     status: "active",
+      //     lastActive: "Today",
+      //     progress: 85,
+      //     nextWorkout: "Today",
+      //     weight: "145 lbs",
+      //     plan: "Full Body Strength",
+      //     profilePicture:
+      //       "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah&backgroundColor=ffdfbf",
+      //   },
+      //   {
+      //     id: "2",
+      //     name: "Emily Davis",
+      //     status: "active",
+      //     lastActive: "Yesterday",
+      //     progress: 70,
+      //     nextWorkout: "Tomorrow",
+      //     weight: "132 lbs",
+      //     plan: "Weight Loss Program",
+      //     profilePicture:
+      //       "https://api.dicebear.com/7.x/avataaars/svg?seed=Emily&backgroundColor=ffdfbf",
+      //   },
+      //   {
+      //     id: "3",
+      //     name: "Jessica Wilson",
+      //     status: "pending",
+      //     lastActive: "3 days ago",
+      //     progress: 50,
+      //     nextWorkout: "Today",
+      //     weight: "158 lbs",
+      //     plan: "Cardio Focus",
+      //     profilePicture:
+      //       "https://api.dicebear.com/7.x/avataaars/svg?seed=Jessica&backgroundColor=ffdfbf",
+      //   },
+      //   {
+      //     id: "4",
+      //     name: "Amanda Brown",
+      //     status: "inactive",
+      //     lastActive: "1 week ago",
+      //     progress: 30,
+      //     nextWorkout: "Not scheduled",
+      //     weight: "140 lbs",
+      //     plan: "Not assigned",
+      //     profilePicture:
+      //       "https://api.dicebear.com/7.x/avataaars/svg?seed=Amanda&backgroundColor=ffdfbf",
+      //   },
+      //   {
+      //     id: "5",
+      //     name: "Michelle Lee",
+      //     status: "active",
+      //     lastActive: "Today",
+      //     progress: 90,
+      //     nextWorkout: "Tomorrow",
+      //     weight: "125 lbs",
+      //     plan: "Flexibility & Toning",
+      //     profilePicture:
+      //       "https://api.dicebear.com/7.x/avataaars/svg?seed=Michelle&backgroundColor=ffdfbf",
+      //   },
+      //   {
+      //     id: "6",
+      //     name: "Rachel Taylor",
+      //     status: "active",
+      //     lastActive: "Today",
+      //     progress: 75,
+      //     nextWorkout: "Today",
+      //     weight: "138 lbs",
+      //     plan: "Muscle Building",
+      //     profilePicture:
+      //       "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel&backgroundColor=ffdfbf",
+      //   },
+      // ]);
     } finally {
       setLoading(false);
     }
@@ -435,12 +421,12 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
 
 
       {activeTab === "clients" ? (
-        <>
-          {loading && (
+        <React.Fragment>
+          {/* {loading && (
             <View className="absolute inset-0 items-center justify-center bg-black/20 z-10">
               <ActivityIndicator size="large" color="#be185d" />
             </View>
-          )}
+          )} */}
 
           {error && (
             <View className="m-4 p-3 bg-red-100 border border-red-300 rounded-lg">
@@ -501,47 +487,52 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
           </View>
 
           <ScrollView className="flex-1">
-            {filteredClients.map((client, index) => (
-              <TouchableOpacity
-                key={index}
-                className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
-                onPress={() => handleClientPress(client)}
-              >
-                <View className="flex-row">
-                  {/* Client Avatar */}
-                  <View className="mr-3">
-                    <View className="w-14 h-14 rounded-full overflow-hidden bg-pink-100">
-                      {client.profilePicture && (
-                        <Image
-                          source={{ uri: client.profilePicture }}
-                          className="w-full h-full"
-                        />
-                      )}
-                    </View>
-                  </View>
-
-                  {/* Client Info */}
-                  <View className="flex-1">
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center">
-                        <Text className="font-semibold text-gray-800 text-lg">
-                          {client.name}
-                        </Text>
-                        <View className="ml-2 flex-row items-center">
-                          {getStatusIcon(client.status)}
-                          <Text className="ml-1 text-xs text-gray-500">
-                            {client.status}
-                          </Text>
-                        </View>
+            {loading ? (
+              <View style={{ minHeight: 330 }} className="items-center justify-center py-8">
+                <ActivityIndicator size="large" color="#be185d" />
+              </View>
+            ) :
+              filteredClients.length > 0 ? filteredClients.map((client, index) => (
+                <TouchableOpacity
+                  key={index}
+                  className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
+                  onPress={() => handleClientPress(client)}
+                >
+                  <View className="flex-row">
+                    {/* Client Avatar */}
+                    <View className="mr-3">
+                      <View className="w-14 h-14 rounded-full overflow-hidden bg-pink-100">
+                        {client.profilePicture && (
+                          <Image
+                            source={{ uri: client.profilePicture }}
+                            className="w-full h-full"
+                          />
+                        )}
                       </View>
-                      <ChevronRight size={20} color="#9ca3af" />
                     </View>
 
-                    <Text className="text-gray-500 text-sm">
-                      Last active: {client.lastActive}
-                    </Text>
+                    {/* Client Info */}
+                    <View className="flex-1">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center">
+                          <Text className="font-semibold text-gray-800 text-lg">
+                            {client.name}
+                          </Text>
+                          <View className="ml-2 flex-row items-center">
+                            {getStatusIcon(client.status)}
+                            <Text className="ml-1 text-xs text-gray-500">
+                              {client.status}
+                            </Text>
+                          </View>
+                        </View>
+                        <ChevronRight size={20} color="#9ca3af" />
+                      </View>
 
-                    {/* <View className="mt-2">
+                      <Text className="text-gray-500 text-sm">
+                        Last active: {client.lastActive}
+                      </Text>
+
+                      {/* <View className="mt-2">
                       <View className="flex-row justify-between mb-1">
                         <Text className="text-xs text-gray-500">Progress</Text>
                         <Text className="text-xs font-medium">
@@ -556,25 +547,29 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                       </View>
                     </View> */}
 
-                    <View className="flex-row justify-between mt-3">
-                      <View className="flex-row items-center">
-                        <Scale size={14} color="#be185d" />
-                        <Text className="text-sm ml-1 text-gray-700">
-                          {client.weight}
-                        </Text>
-                      </View>
+                      <View className="flex-row justify-between mt-3">
+                        <View className="flex-row items-center">
+                          <Scale size={14} color="#be185d" />
+                          <Text className="text-sm ml-1 text-gray-700">
+                            {client.weight}
+                          </Text>
+                        </View>
 
-                      {/* <View className="flex-row items-center">
+                        {/* <View className="flex-row items-center">
                         <Dumbbell size={14} color="#be185d" />
                         <Text className="text-sm ml-1 text-gray-700">
                           {client.plan}
                         </Text>
                       </View> */}
+                      </View>
                     </View>
                   </View>
+                </TouchableOpacity>
+              )) : (
+                <View style={{ minHeight: 330 }} className="items-center justify-center py-8">
+                  <Text className="text-center mt-10 ">No clients found</Text>
                 </View>
-              </TouchableOpacity>
-            ))}
+              )}
 
             {/* Add Client Button */}
             <TouchableOpacity
@@ -584,7 +579,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
               <Text className="text-white font-semibold">Add New Client</Text>
             </TouchableOpacity>
           </ScrollView>
-        </>
+        </React.Fragment>
       ) : activeTab === "workouts" ? (
         <WorkoutPlanManager />
       ) : activeTab === "exercises" ? (

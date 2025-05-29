@@ -350,10 +350,9 @@ const ClientHome = () => {
   const fetchTodayDietPlans = async () => {
     const today = new Date();
     const formattedDate = today.toISOString().split('T')[0];
-
     try {
       const response = await clientApi.getClientsDietPlans(Number(userId), formattedDate)
-      console.log(response)
+      // console.log(response)
       setMeals(response)
     } catch (error) {
       console.log(error)

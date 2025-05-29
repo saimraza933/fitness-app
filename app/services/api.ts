@@ -186,7 +186,8 @@ export const trainerApi = {
     return response.data;
   },
 
-  getClientsByTrainer: async (trainerId: number | string) => {
+  getClientsByTrainer: async (trainerId: number) => {
+    console.log(trainerId)
     const response = await api.get(`/getClientsByTrainer/${trainerId}`);
     return response.data;
   },

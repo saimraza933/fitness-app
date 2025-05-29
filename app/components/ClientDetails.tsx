@@ -53,6 +53,7 @@ const weeklyGoals = [
   { id: "3", title: "Drink 2L water daily", completed: false },
   { id: "4", title: "Sleep 7+ hours", completed: false },
 ];
+
 const mockPlans = [
   {
     "id": 1,
@@ -97,7 +98,6 @@ const progressLogs = [
     notes: "First week completed successfully",
   },
 ];
-
 
 const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const { userId } = useAppSelector(state => state.auth)

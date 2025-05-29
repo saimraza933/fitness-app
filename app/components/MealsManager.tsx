@@ -183,12 +183,12 @@ const MealsManager = () => {
           </View>
         </View> */}
 
-        {loading && (
+        {/* {loading && (
           <View className="items-center justify-center py-8">
             <ActivityIndicator size="large" color="#be185d" />
             <Text className="text-gray-600 mt-2">Loading meals...</Text>
           </View>
-        )}
+        )} */}
 
         {error && (
           <View className="bg-red-100 p-3 rounded-lg mb-4">
@@ -201,60 +201,69 @@ const MealsManager = () => {
             </TouchableOpacity>
           </View>
         )}
+
         {
-          mealsList?.length > 0 && (
-            <ScrollView
-              style={{ flex: 1, backgroundColor: "transparent" }}
-              contentContainerStyle={{ paddingBottom: 100 }}
-              showsVerticalScrollIndicator={true}
-              alwaysBounceVertical={true}
-              scrollEnabled={true}
-            >
+          loading ? <View className="items-center justify-center py-8">
+            <ActivityIndicator size="large" color="#be185d" />
+            <Text className="text-gray-600 mt-2">Loading meals...</Text>
+          </View> :
+            mealsList?.length > 0 ? (
+              <ScrollView
+                style={{ flex: 1, backgroundColor: "transparent" }}
+                contentContainerStyle={{ paddingBottom: 100 }}
+                showsVerticalScrollIndicator={true}
+                alwaysBounceVertical={true}
+                scrollEnabled={true}
+              >
 
-              {
-                mealsList?.map((item: any) => (
-                  item.meals.map((meal: any, index: any) => (
-                    <View
-                      key={index}
-                      className="bg-white mb-3 rounded-xl shadow-sm overflow-hidden"
-                    >
-                      <MealCard
-                        meal={{ dietPlanId: item?.dietPlanId, ...meal }}
-                      />
-                      <View className="flex-row ">
-                        <TouchableOpacity
-                          className="flex-1 py-2 flex-row justify-center items-center"
-                          onPress={() => handleOpenModal({ dietPlanId: item?.dietPlanId, ...meal })}
-                        >
-                          <Edit2 size={16} color="#be185d" />
-                          <Text className="text-pink-800 font-medium ml-1">Edit </Text>
-                        </TouchableOpacity>
+                {
+                  mealsList?.map((item: any) => (
+                    item.meals.map((meal: any, index: any) => (
+                      <View
+                        key={index}
+                        className="bg-white mb-3 rounded-xl shadow-sm overflow-hidden"
+                      >
+                        <MealCard
+                          meal={{ dietPlanId: item?.dietPlanId, ...meal }}
+                        />
+                        <View className="flex-row ">
+                          <TouchableOpacity
+                            className="flex-1 py-2 flex-row justify-center items-center"
+                            onPress={() => handleOpenModal({ dietPlanId: item?.dietPlanId, ...meal })}
+                          >
+                            <Edit2 size={16} color="#be185d" />
+                            <Text className="text-pink-800 font-medium ml-1">Edit </Text>
+                          </TouchableOpacity>
 
-                        <View className="w-px bg-gray-100" />
+                          <View className="w-px bg-gray-100" />
 
-                        <TouchableOpacity
-                          className="flex-1 py-2 flex-row justify-center items-center"
-                          onPress={() => handleShowDelete({ dietPlanId: item?.dietPlanId, ...meal })}
-                        >
-                          <Trash2 size={16} color="#dc2626" />
-                          <Text className="text-red-600 font-medium ml-1">Delete</Text>
-                        </TouchableOpacity>
+                          <TouchableOpacity
+                            className="flex-1 py-2 flex-row justify-center items-center"
+                            onPress={() => handleShowDelete({ dietPlanId: item?.dietPlanId, ...meal })}
+                          >
+                            <Trash2 size={16} color="#dc2626" />
+                            <Text className="text-red-600 font-medium ml-1">Delete</Text>
+                          </TouchableOpacity>
+                        </View>
                       </View>
-                    </View>
+                    ))
                   ))
-                ))
-              }
+                }
 
-              {mealsList.length === 0 && !loading && (
-                <View className="bg-white p-6 rounded-xl items-center justify-center">
-                  <Dumbbell size={40} color="#d1d5db" />
-                  <Text className="text-gray-500 mt-2 text-center">
-                    No meals found. Create your first meal to get started.
-                  </Text>
-                </View>
-              )}
-            </ScrollView>
-          )
+                {mealsList.length === 0 && !loading && (
+                  <View className="bg-white p-6 rounded-xl items-center justify-center">
+                    <Dumbbell size={40} color="#d1d5db" />
+                    <Text className="text-gray-500 mt-2 text-center">
+                      No meals found. Create your first meal to get started.
+                    </Text>
+                  </View>
+                )}
+              </ScrollView>
+            ) : (
+              <View className="items-center justify-center py-8">
+                <Text className="text-center">No meals found</Text>
+              </View>
+            )
         }
 
 

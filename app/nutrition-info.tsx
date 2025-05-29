@@ -11,6 +11,8 @@ import { useRouter } from "expo-router";
 import { ArrowLeft, Utensils, Clock, PieChart } from "lucide-react-native";
 import { useLocalSearchParams } from 'expo-router';
 import { useAppSelector } from "./hooks/redux";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const convertTimeStringToDate = (timeString: any) => {
 
@@ -30,6 +32,7 @@ const convertTimeStringToDate = (timeString: any) => {
 
 
 export default function NutritionInfoScreen() {
+  const insets = useSafeAreaInsets();
   const { currentDietPlan } = useAppSelector(state => state.user)
 
   const router = useRouter();
@@ -142,7 +145,7 @@ export default function NutritionInfoScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-pink-50">
+    <SafeAreaView style={{ marginTop: insets.top }} className="flex-1 bg-pink-50">
       <View className="flex-row items-center p-4 bg-white border-b border-gray-200">
         <TouchableOpacity onPress={() => router.back()}>
           <ArrowLeft size={24} color="#be185d" />
