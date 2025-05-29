@@ -151,7 +151,7 @@ const ProgressSection = () => {
   const fetchClients = async () => {
     try {
       setIsLoading(true);
-      const clientsData = await trainerApi.getClientsByTrainer(userId);
+      const clientsData = await trainerApi.getClientsByTrainer(Number(userId));
       const formattedClients = clientsData?.map((client: any) => {
         const clientObj = client?.client
         return {
@@ -191,7 +191,7 @@ const ProgressSection = () => {
               </Text>
 
               {isLoading ?
-                <View className=" items-center mt-10 justify-center ">
+                <View style={{ minHeight: 400 }} className=" items-center mt-10 justify-center ">
                   <ActivityIndicator size="large" color="#be185d" />
                 </View> :
                 clients?.length > 0 ? clients.map((client: any) => (
@@ -245,11 +245,14 @@ const ProgressSection = () => {
                       </View>
                     </View>
                   </TouchableOpacity>
-                )) :
-                  <Text className="text-center text-xl">No data found</Text>
+                )) : (
+                  <View style={{ minHeight: 400 }} className=" items-center mt-10 justify-center">
+                    <Text className="text-center text-xl">No clients found</Text>
+                  </View>
+                )
               }
             </View>
-          </ScrollView>
+          </ScrollView >
         )
       }
     </>

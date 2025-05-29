@@ -444,8 +444,8 @@ const ProfileScreen = () => {
           <View className="flex-row absolute bottom-0 right-0">
             <TouchableOpacity
               className="bg-pink-600 p-2 rounded-full"
-              onPress={(event) => {
-                setImageMenuAnchor(event.currentTarget);
+              onPress={(event: any) => {
+                setImageMenuAnchor(event?.currentTarget);
                 setShowImageOptions(true);
               }}
             >

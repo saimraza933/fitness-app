@@ -23,6 +23,7 @@ import {
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppSelector } from "../hooks/redux";
 
 interface Exercise {
   id: string | number;
@@ -33,6 +34,7 @@ interface Exercise {
 }
 
 const ExerciseManager = () => {
+  const { userId } = useAppSelector(state => state.auth)
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,14 +70,7 @@ const ExerciseManager = () => {
     try {
       setLoading(true);
       setError(null);
-      const trainerId = await AsyncStorage.getItem('user_id');
-
-      if (trainerId === null) {
-        throw new Error('Trainer ID not found in storage');
-      }
-      const parsedTrainerId = parseInt(trainerId, 10);
-      // Call the API to get exercises
-      const data = await trainerApi.getExercisesByTrainer(parsedTrainerId);
+      const data = await trainerApi.getExercisesByTrainer(Number(userId));
       setExercises(data);
       setLoading(false);
     } catch (err) {
@@ -83,58 +78,58 @@ const ExerciseManager = () => {
       setError("Failed to load exercises. Please try again.");
 
       // Fallback to mock data if API fails
-      setExercises([
-        {
-          id: "1",
-          name: "Squats",
-          description:
-            "Lower body compound exercise targeting quadriceps, hamstrings, and glutes",
-          imageUrl:
-            "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
-          instructions:
-            "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
-        },
-        {
-          id: "2",
-          name: "Push-ups",
-          description:
-            "Upper body exercise that works the chest, shoulders, and triceps",
-          imageUrl:
-            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
-          instructions:
-            "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
-        },
-        {
-          id: "3",
-          name: "Lunges",
-          description:
-            "Lower body exercise that targets the quadriceps, hamstrings, and glutes",
-          imageUrl:
-            "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
-          instructions:
-            "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
-        },
-        {
-          id: "4",
-          name: "Plank",
-          description:
-            "Core exercise that strengthens the abdominals, back, and shoulders",
-          imageUrl:
-            "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
-          instructions:
-            "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
-        },
-        {
-          id: "5",
-          name: "Deadlift",
-          description:
-            "Compound exercise that works the entire posterior chain",
-          imageUrl:
-            "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
-          instructions:
-            "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
-        },
-      ]);
+      // setExercises([
+      //   {
+      //     id: "1",
+      //     name: "Squats",
+      //     description:
+      //       "Lower body compound exercise targeting quadriceps, hamstrings, and glutes",
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
+      //     instructions:
+      //       "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
+      //   },
+      //   {
+      //     id: "2",
+      //     name: "Push-ups",
+      //     description:
+      //       "Upper body exercise that works the chest, shoulders, and triceps",
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
+      //     instructions:
+      //       "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
+      //   },
+      //   {
+      //     id: "3",
+      //     name: "Lunges",
+      //     description:
+      //       "Lower body exercise that targets the quadriceps, hamstrings, and glutes",
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
+      //     instructions:
+      //       "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
+      //   },
+      //   {
+      //     id: "4",
+      //     name: "Plank",
+      //     description:
+      //       "Core exercise that strengthens the abdominals, back, and shoulders",
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
+      //     instructions:
+      //       "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
+      //   },
+      //   {
+      //     id: "5",
+      //     name: "Deadlift",
+      //     description:
+      //       "Compound exercise that works the entire posterior chain",
+      //     imageUrl:
+      //       "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=400&q=80",
+      //     instructions:
+      //       "Stand with feet hip-width apart, bend at hips and knees to lower and grip the bar, then stand up by driving through the heels.",
+      //   },
+      // ]);
       setLoading(false);
     }
   };

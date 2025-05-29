@@ -67,7 +67,7 @@ const DietPlanManager = () => {
   const [openModal, setOpenModal] = useState(false)
   const [planToDelete, setPlanToDelete] = useState<any>(null)
   const [planToEdit, setPlanToEdit] = useState(null)
-  const [dietPlansList, setDietPlansList] = useState([])
+  const [dietPlansList, setDietPlansList] = useState<any>([])
   const [error, setError] = useState<string | null>(null);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState<boolean>(false);

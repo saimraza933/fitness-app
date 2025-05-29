@@ -23,6 +23,7 @@ import {
 } from "lucide-react-native";
 import { trainerApi } from "../services/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useAppSelector } from "../hooks/redux";
 
 interface Exercise {
   id: string | number;
@@ -44,6 +45,7 @@ interface WorkoutPlan {
 }
 
 const WorkoutPlanManager = () => {
+  const { userId } = useAppSelector(state => state.auth)
   const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -93,62 +95,55 @@ const WorkoutPlanManager = () => {
     try {
       setLoading(true);
       setError(null);
-      const trainerId = await AsyncStorage.getItem('user_id');
-
-      if (trainerId === null) {
-        throw new Error('Trainer ID not found in storage');
-      }
-      const parsedTrainerId = parseInt(trainerId, 10);
-
-      const data = await trainerApi.getWorkoutPlansByTrainer(parsedTrainerId);
+      const data = await trainerApi.getWorkoutPlansByTrainer(Number(userId));
       setWorkoutPlans(data);
     } catch (err) {
       console.error("Error fetching workout plans:", err);
       setError("Failed to load workout plans. Please try again.");
       // Fallback to mock data if API fails
-      setWorkoutPlans([
-        {
-          id: "1",
-          name: "Full Body Strength",
-          description: "A complete workout targeting all major muscle groups",
-          difficulty: "Intermediate",
-          durationMinutes: 45,
-          caloriesBurned: 320,
-        },
-        {
-          id: "2",
-          name: "Weight Loss Program",
-          description:
-            "High intensity workout designed for maximum calorie burn",
-          difficulty: "Advanced",
-          durationMinutes: 30,
-          caloriesBurned: 400,
-        },
-        {
-          id: "3",
-          name: "Cardio Focus",
-          description: "Improve cardiovascular health and endurance",
-          difficulty: "Beginner",
-          durationMinutes: 40,
-          caloriesBurned: 350,
-        },
-        {
-          id: "4",
-          name: "Muscle Building",
-          description: "Heavy resistance training for muscle growth",
-          difficulty: "Advanced",
-          durationMinutes: 60,
-          caloriesBurned: 450,
-        },
-        {
-          id: "5",
-          name: "Flexibility & Toning",
-          description: "Focus on flexibility, balance and muscle toning",
-          difficulty: "Beginner",
-          durationMinutes: 50,
-          caloriesBurned: 250,
-        },
-      ]);
+      // setWorkoutPlans([
+      //   {
+      //     id: "1",
+      //     name: "Full Body Strength",
+      //     description: "A complete workout targeting all major muscle groups",
+      //     difficulty: "Intermediate",
+      //     durationMinutes: 45,
+      //     caloriesBurned: 320,
+      //   },
+      //   {
+      //     id: "2",
+      //     name: "Weight Loss Program",
+      //     description:
+      //       "High intensity workout designed for maximum calorie burn",
+      //     difficulty: "Advanced",
+      //     durationMinutes: 30,
+      //     caloriesBurned: 400,
+      //   },
+      //   {
+      //     id: "3",
+      //     name: "Cardio Focus",
+      //     description: "Improve cardiovascular health and endurance",
+      //     difficulty: "Beginner",
+      //     durationMinutes: 40,
+      //     caloriesBurned: 350,
+      //   },
+      //   {
+      //     id: "4",
+      //     name: "Muscle Building",
+      //     description: "Heavy resistance training for muscle growth",
+      //     difficulty: "Advanced",
+      //     durationMinutes: 60,
+      //     caloriesBurned: 450,
+      //   },
+      //   {
+      //     id: "5",
+      //     name: "Flexibility & Toning",
+      //     description: "Focus on flexibility, balance and muscle toning",
+      //     difficulty: "Beginner",
+      //     durationMinutes: 50,
+      //     caloriesBurned: 250,
+      //   },
+      // ]);
     } finally {
       setLoading(false);
     }
@@ -223,16 +218,7 @@ const WorkoutPlanManager = () => {
   const fetchExercises = async () => {
     try {
       setLoadingExercises(true);
-
-      const trainerId = await AsyncStorage.getItem('user_id');
-
-      if (trainerId === null) {
-        throw new Error('Trainer ID not found in storage');
-      }
-      const parsedTrainerId = parseInt(trainerId, 10);
-      console.log(parsedTrainerId)
-      // Call the API to get exercises
-      const data = await trainerApi.getExercisesByTrainer(parsedTrainerId);
+      const data = await trainerApi.getExercisesByTrainer(Number(userId));
       // Transform the data to match our Exercise interface if needed
       const formattedExercises = data?.map((exercise: any) => ({
         id: exercise.id,
@@ -403,17 +389,11 @@ const WorkoutPlanManager = () => {
       );
       return;
     }
-    const trainerId = await AsyncStorage.getItem('user_id');
-
-    if (trainerId === null) {
-      throw new Error('Trainer ID not found in storage');
-    }
-    const parsedTrainerId = parseInt(trainerId, 10);
 
     try {
       setIsSaving(true);
       const planData = {
-        createdBy: parsedTrainerId,
+        createdBy: userId,
         name: formData.name,
         description: formData.description,
         difficulty: formData.difficulty,

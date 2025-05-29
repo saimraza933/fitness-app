@@ -34,13 +34,6 @@ export const initializeAuth = createAsyncThunk("auth/initialize", async () => {
     const userRole = await AsyncStorage.getItem("user_role");
     const isLoggedIn = await AsyncStorage.getItem("is_logged_in");
 
-    console.log(
-      "AuthSlice init - stored role:",
-      userRole,
-      "logged in:",
-      isLoggedIn,
-    );
-
     if (token && userId && email && userRole && isLoggedIn === "true") {
       console.log("Setting user role from storage to:", userRole);
       return {
