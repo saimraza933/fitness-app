@@ -352,7 +352,6 @@ const ClientHome = () => {
     const formattedDate = today.toISOString().split('T')[0];
     try {
       const response = await clientApi.getClientsDietPlans(Number(userId), formattedDate)
-      // console.log(response)
       setMeals(response)
     } catch (error) {
       console.log(error)
@@ -398,7 +397,6 @@ const ClientHome = () => {
   };
 
   const toggleMeal = async (assignmentId: any, mealId: any, completed: any) => {
-    // console.log(assignmentId, mealId)
     Alert.alert(
       'Confirm Action',
       `Are you sure you want to mark this meal as ${completed ? 'incomplete' : 'complete'}?`,

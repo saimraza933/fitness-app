@@ -193,7 +193,7 @@ const DietPlanManager = () => {
                       <View className="flex-row items-center">
                         <Drumstick size={16} color="#be185d" />
                         <Text className="text-gray-700 ml-1">
-                          {plan.proteinPercentage} %
+                          {parseFloat(plan.proteinPercentage)} %
                         </Text>
                       </View>
 
@@ -201,7 +201,7 @@ const DietPlanManager = () => {
                       <View className="flex-row items-center mx-2">
                         <Gauge size={16} color="#be185d" />
                         <Text className="text-gray-700 ml-1">
-                          {plan.totalCalories} kcal
+                          {parseFloat(plan.totalCalories)} kcal
                         </Text>
                       </View>
 
@@ -209,7 +209,7 @@ const DietPlanManager = () => {
                       <View className="flex-row items-center mx-2">
                         <CupSoda size={16} color="#be185d" />
                         <Text className="text-gray-700 ml-1">
-                          {plan.carbsPercentage} %
+                          {parseFloat(plan.carbsPercentage)} %
                         </Text>
                       </View>
 
@@ -217,7 +217,7 @@ const DietPlanManager = () => {
                       <View className="flex-row items-center mx-2">
                         <Soup size={16} color="#be185d" />
                         <Text className="text-gray-700 ml-1">
-                          {plan.fatPercentage} %
+                          {parseFloat(plan.fatPercentage)} %
                         </Text>
                       </View>
                     </View>

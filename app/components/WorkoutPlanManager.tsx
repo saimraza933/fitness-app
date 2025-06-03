@@ -87,8 +87,12 @@ const WorkoutPlanManager = () => {
   });
 
   useEffect(() => {
-    fetchWorkoutPlans();
-    fetchExercises();
+    (async () => {
+      await Promise.all([
+        fetchWorkoutPlans(),
+        fetchExercises(),
+      ])
+    })()
   }, []);
 
   const fetchWorkoutPlans = async () => {
@@ -100,50 +104,6 @@ const WorkoutPlanManager = () => {
     } catch (err) {
       console.error("Error fetching workout plans:", err);
       setError("Failed to load workout plans. Please try again.");
-      // Fallback to mock data if API fails
-      // setWorkoutPlans([
-      //   {
-      //     id: "1",
-      //     name: "Full Body Strength",
-      //     description: "A complete workout targeting all major muscle groups",
-      //     difficulty: "Intermediate",
-      //     durationMinutes: 45,
-      //     caloriesBurned: 320,
-      //   },
-      //   {
-      //     id: "2",
-      //     name: "Weight Loss Program",
-      //     description:
-      //       "High intensity workout designed for maximum calorie burn",
-      //     difficulty: "Advanced",
-      //     durationMinutes: 30,
-      //     caloriesBurned: 400,
-      //   },
-      //   {
-      //     id: "3",
-      //     name: "Cardio Focus",
-      //     description: "Improve cardiovascular health and endurance",
-      //     difficulty: "Beginner",
-      //     durationMinutes: 40,
-      //     caloriesBurned: 350,
-      //   },
-      //   {
-      //     id: "4",
-      //     name: "Muscle Building",
-      //     description: "Heavy resistance training for muscle growth",
-      //     difficulty: "Advanced",
-      //     durationMinutes: 60,
-      //     caloriesBurned: 450,
-      //   },
-      //   {
-      //     id: "5",
-      //     name: "Flexibility & Toning",
-      //     description: "Focus on flexibility, balance and muscle toning",
-      //     difficulty: "Beginner",
-      //     durationMinutes: 50,
-      //     caloriesBurned: 250,
-      //   },
-      // ]);
     } finally {
       setLoading(false);
     }
@@ -151,67 +111,11 @@ const WorkoutPlanManager = () => {
 
   const fetchPlanDetails = async (planId: string | number) => {
     try {
-      setLoading(true);
       const data = await trainerApi.getWorkoutPlan(planId);
       setSelectedPlan(data);
       setShowPlanDetails(true);
     } catch (err) {
-      console.error("Error fetching workout plan details:", err);
-      Alert.alert("Error", "Failed to load workout plan details.");
-      // Fallback to mock data
-      const mockExercises = [
-        {
-          id: "1",
-          name: "Squats",
-          sets: 3,
-          reps: 15,
-          imageUrl:
-            "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=400&q=80",
-          instructions:
-            "Stand with feet shoulder-width apart, lower your body as if sitting in a chair, then return to standing.",
-        },
-        {
-          id: "2",
-          name: "Push-ups",
-          sets: 3,
-          reps: 10,
-          imageUrl:
-            "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&q=80",
-          instructions:
-            "Start in plank position with hands slightly wider than shoulders, lower chest to ground, then push back up.",
-        },
-        {
-          id: "3",
-          name: "Lunges",
-          sets: 3,
-          reps: 12,
-          imageUrl:
-            "https://images.unsplash.com/photo-1434608519344-49d77a699e1d?w=400&q=80",
-          instructions:
-            "Step forward with one leg, lowering your hips until both knees are bent at 90 degrees, then return to standing.",
-        },
-        {
-          id: "4",
-          name: "Plank",
-          sets: 3,
-          reps: 30,
-          imageUrl:
-            "https://images.unsplash.com/photo-1566351557863-467d204a9f8f?w=400&q=80",
-          instructions:
-            "Hold a push-up position with your body in a straight line from head to heels for the specified time.",
-        },
-      ];
-
-      const plan = workoutPlans.find((p) => p.id === planId);
-      if (plan) {
-        setSelectedPlan({
-          ...plan,
-          exercises: mockExercises,
-        });
-        setShowPlanDetails(true);
-      }
-    } finally {
-      setLoading(false);
+      console.log("Error fetching workout plan details:", err);
     }
   };
 
@@ -700,9 +604,9 @@ const WorkoutPlanManager = () => {
                 </View>
 
                 {/* Current Exercises List */}
-                {formData.exercises.length > 0 ? (
+                {formData?.exercises?.length > 0 ? (
                   <View className="mb-4">
-                    {formData.exercises.map((exercise, index) => (
+                    {formData?.exercises?.map((exercise, index) => (
                       <View
                         key={index}
                         className="bg-gray-50 p-3 rounded-lg mb-2 flex-row justify-between items-center"
@@ -799,28 +703,33 @@ const WorkoutPlanManager = () => {
                               </Text>
                             </View>
                           ) : (
-                            availableExercises.map((exercise) => (
-                              <TouchableOpacity
-                                key={exercise.id}
-                                className={`p-3 border-b border-gray-100 ${selectedExercise?.id === exercise.id ? "bg-pink-50" : ""}`}
-                                onPress={() => {
-                                  setSelectedExercise(exercise);
-                                  setExerciseSets(
-                                    exercise.sets?.toString() || "3",
-                                  );
-                                  setExerciseReps(
-                                    exercise.reps?.toString() || "10",
-                                  );
-                                  setShowExerciseDropdown(false);
-                                }}
-                              >
-                                <Text
-                                  className={`${selectedExercise?.id === exercise.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
-                                >
-                                  {exercise.name}
-                                </Text>
-                              </TouchableOpacity>
-                            ))
+                            <ScrollView showsVerticalScrollIndicator className="max-h-[200]">
+                              {
+                                availableExercises?.map((exercise, index) => (
+                                  <TouchableOpacity
+                                    key={exercise.id}
+                                    className={`p-3 border-b border-gray-100 ${selectedExercise?.id === exercise.id ? "bg-pink-50" : ""}`}
+                                    onPress={() => {
+                                      setSelectedExercise(exercise);
+                                      setExerciseSets(
+                                        exercise.sets?.toString() || "3",
+                                      );
+                                      setExerciseReps(
+                                        exercise.reps?.toString() || "10",
+                                      );
+                                      setShowExerciseDropdown(false);
+                                    }}
+                                  >
+                                    <Text
+                                      className={`${selectedExercise?.id === exercise.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                                    >
+                                      {exercise.name}
+                                    </Text>
+                                  </TouchableOpacity>
+                                ))
+                              }
+                            </ScrollView>
+
                           )}
                         </View>
                       </TouchableOpacity>

@@ -75,44 +75,32 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
   const [activeTab, setActiveTab] = React.useState<TabKey>('clients');
 
   useEffect(() => {
-    fetchClients();
+    (async () => {
+      await Promise.all([
+        fetchClients(),
+        fetchAvailableClients()
+      ])
+    })()
   }, []);
-
-  // Fetch available clients when modal opens
-  useEffect(() => {
-    if (showAddClientModal) {
-      fetchAvailableClients();
-    }
-  }, [showAddClientModal]);
-
 
   const fetchAvailableClients = async () => {
     try {
       setIsAssigning(false);
       setSelectedClientId(null);
-      // Fetch all available clients that aren't already assigned to this trainer
       const response = await trainerApi.getNotAssignedClients();
       // If API call fails, use mock data
-      if (!response || !Array.isArray(response)) {
+      if (response || Array.isArray(response)) {
         setAvailableClients(
           response.map((client: any) => ({
-            id: client?.client?.profile?.id,
-            name: client?.client?.profile?.name,
+            id: client?.profile?.id,
+            name: client?.profile?.name,
           })),
         );
       } else {
         setAvailableClients([]);
       }
     } catch (err) {
-      // console.error("Error fetching available clients:", err);
-      // Fallback to mock data
-      setAvailableClients([
-        { id: "101", name: "Emma Wilson" },
-        { id: "102", name: "Olivia Martinez" },
-        { id: "103", name: "Sophia Thompson" },
-        { id: "104", name: "Isabella Garcia" },
-        { id: "105", name: "Mia Rodriguez" },
-      ]);
+      console.log("Error fetching available clients");
     }
   };
 
@@ -168,7 +156,6 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
         }
       })
 
-      // console.log(formattedClients)
       setClients(formattedClients);
     } catch (err) {
       console.error("Error fetching clients:", err);
@@ -303,7 +290,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
     });
   };
 
-  const filteredClients = clients?.filter((client) =>
+  const filteredClients: any = clients?.filter((client) =>
     client?.name?.toLowerCase().includes(searchQuery?.toLowerCase()),
   );
 
@@ -492,7 +479,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                 <ActivityIndicator size="large" color="#be185d" />
               </View>
             ) :
-              filteredClients.length > 0 ? filteredClients.map((client, index) => (
+              filteredClients.length > 0 ? filteredClients.map((client: any, index: any) => (
                 <TouchableOpacity
                   key={index}
                   className="bg-white mx-4 mb-3 p-4 rounded-xl shadow-sm"
@@ -551,7 +538,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                         <View className="flex-row items-center">
                           <Scale size={14} color="#be185d" />
                           <Text className="text-sm ml-1 text-gray-700">
-                            {client.weight}
+                            {parseFloat(client?.weight)} lbs
                           </Text>
                         </View>
 
@@ -607,12 +594,14 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
             <Text className="text-gray-700 mb-2 font-medium">
               Select Client
             </Text>
-            <View className="border border-gray-300 rounded-lg mb-4">
+            <ScrollView showsVerticalScrollIndicator className="h-[300px] border border-gray-300 rounded-lg mb-4">
               {availableClients.map((client) => (
                 <TouchableOpacity
                   key={client.id}
                   className={`p-3 border-b border-gray-100 ${client.id === selectedClientId ? "bg-pink-50" : ""}`}
-                  onPress={() => setSelectedClientId(client.id)}
+                  onPress={() => {
+                    setSelectedClientId(client.id)
+                  }}
                 >
                   <Text
                     className={`${client.id === selectedClientId ? "text-pink-600 font-medium" : "text-gray-800"}`}
@@ -629,7 +618,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
                   </Text>
                 </View>
               )}
-            </View>
+            </ScrollView>
 
             <View className="flex-row justify-end">
               <TouchableOpacity
@@ -641,11 +630,7 @@ const TrainerDashboard = ({ onClientSelect }: TrainerDashboardProps) => {
 
               <TouchableOpacity
                 className={`bg-pink-600 py-2 px-4 rounded-lg ${isAssigning ? "opacity-70" : ""}`}
-                onPress={() => {
-                  console.log("Assign Client button pressed");
-                  console.log("Selected client ID:", selectedClientId);
-                  assignClient();
-                }}
+                onPress={assignClient}
                 disabled={isAssigning || !selectedClientId}
               >
                 {isAssigning ? (

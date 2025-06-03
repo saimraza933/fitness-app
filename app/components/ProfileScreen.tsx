@@ -398,6 +398,11 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await dispatch(logout());
+    router.replace("/login");
+  }
+
   // const scheduleDailyReminder = async (notificationTime: any) => {
   //   if (userRole !== 'client' || !notificationTime) return;
 
@@ -781,10 +786,7 @@ const ProfileScreen = () => {
 
           <TouchableOpacity
             className="flex-row items-center py-3"
-            onPress={async () => {
-              await dispatch(logout());
-              router.replace("/login");
-            }}
+            onPress={handleLogout}
           >
             <View className="flex-row items-center">
               <LogOut size={18} color="#be185d" className="mr-2" />

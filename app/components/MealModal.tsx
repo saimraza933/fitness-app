@@ -63,7 +63,7 @@ const convertTimeStringToDate = (timeString: any) => {
 };
 
 
-const MealModal = ({ visible, onClose, mealToEdit, fetchMeals, dietPlansList }) => {
+const MealModal: React.FC<any> = ({ visible, onClose, mealToEdit, fetchMeals, dietPlansList }) => {
   const isEditing = !!mealToEdit
   const dropDownButtonRef = useRef(null);
   const [formData, setFormData] = useState<FormData>({
@@ -228,7 +228,6 @@ const MealModal = ({ visible, onClose, mealToEdit, fetchMeals, dietPlansList }) 
               <TouchableOpacity
                 ref={dropDownButtonRef}
                 className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white"
-
                 onPress={() => {
                   const handle = findNodeHandle(dropDownButtonRef.current);
                   if (handle) {
@@ -245,7 +244,7 @@ const MealModal = ({ visible, onClose, mealToEdit, fetchMeals, dietPlansList }) 
               >
                 <Text className="text-gray-800">
                   {selectedPlan
-                    ? selectedPlan.name
+                    ? selectedPlan?.name
                     : "Select an Diet Plan"}
                 </Text>
                 <ChevronDown size={20} color="#9ca3af" />
@@ -273,26 +272,28 @@ const MealModal = ({ visible, onClose, mealToEdit, fetchMeals, dietPlansList }) 
                       elevation: 5,
                     }}
                   >
-                    {
-                      dietPlansList.map((meal: any) => (
-                        <TouchableOpacity
-                          key={meal.id}
-                          className={`p-3 border-b border-gray-100 ${selectedPlan?.id === meal.id ? "bg-pink-50" : ""}`}
-                          onPress={() => {
-                            setShowDropDown(false);
-                            setSelectedPlan(meal);
-                          }}
-
-
-                        >
-                          <Text
-                            className={`${selectedPlan?.id === meal.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                    <ScrollView showsVerticalScrollIndicator className="max-h-[200]">
+                      {
+                        dietPlansList?.length > 0 ? dietPlansList.map((meal: any) => (
+                          <TouchableOpacity
+                            key={meal.id}
+                            className={`p-3 border-b border-gray-100 ${selectedPlan?.id === meal.id ? "bg-pink-50" : ""}`}
+                            onPress={() => {
+                              setShowDropDown(false);
+                              setSelectedPlan(meal);
+                            }}
                           >
-                            {meal.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    }
+                            <Text
+                              className={`${selectedPlan?.id === meal.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                            >
+                              {meal.name}
+                            </Text>
+                          </TouchableOpacity>
+                        )) : (
+                          <Text className="py-3 text-center">No diet plans found</Text>
+                        )
+                      }
+                    </ScrollView>
                   </View>
                 </TouchableOpacity>
               </Modal>
@@ -383,7 +384,7 @@ const MealModal = ({ visible, onClose, mealToEdit, fetchMeals, dietPlansList }) 
               className={`bg-pink-600 py-2 px-4 rounded-lg mb-4`}
               onPress={handleAddIngredient}
             >
-              <Text className="text-white font-medium text-center">+ Add Ingredient</Text>
+              <Text className="text-white font-medium text-center">+ Add More Ingredient</Text>
             </TouchableOpacity>
 
           </ScrollView>

@@ -261,7 +261,6 @@ const ExerciseManager = () => {
 
   const handleViewExercise = async (exercise: Exercise) => {
     try {
-      setLoading(true);
       // Get detailed exercise information from API
       const detailedExercise = await trainerApi.getExercise(exercise.id);
       setSelectedExercise(detailedExercise);
@@ -271,8 +270,6 @@ const ExerciseManager = () => {
       // Fallback to using the exercise data we already have
       setSelectedExercise(exercise);
       setShowExerciseDetails(true);
-    } finally {
-      setLoading(false);
     }
   };
 

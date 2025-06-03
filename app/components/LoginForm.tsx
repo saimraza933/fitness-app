@@ -118,7 +118,7 @@ const LoginForm = ({ onLogin, onSignUp }: LoginFormProps) => {
                 )}
               </TouchableOpacity>
             </View>
-            <TouchableOpacity
+            {/* <TouchableOpacity
               className="self-end mt-2"
               onPress={() => {
                 setShowForgotPasswordModal(true);
@@ -127,7 +127,7 @@ const LoginForm = ({ onLogin, onSignUp }: LoginFormProps) => {
               }}
             >
               <Text className="text-pink-600 font-medium">Forgot Password?</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
 
           {/* Login Button */}

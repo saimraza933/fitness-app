@@ -162,7 +162,7 @@ export default function NutritionInfoScreen() {
             {currentDietPlan?.name}
           </Text>
           <Text className="text-pink-200">
-            {currentDietPlan?.totalCalories} calories per day
+            {parseFloat(currentDietPlan?.totalCalories)} calories per day
           </Text>
         </View>
 
@@ -179,7 +179,7 @@ export default function NutritionInfoScreen() {
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-pink-600 items-center justify-center">
                 <Text className="text-white font-bold">
-                  {currentDietPlan?.proteinPercentage}%
+                  {parseFloat(currentDietPlan?.proteinPercentage)}%
                 </Text>
               </View>
               <Text className="mt-2 font-medium text-gray-700">Protein</Text>
@@ -188,7 +188,7 @@ export default function NutritionInfoScreen() {
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-purple-500 items-center justify-center">
                 <Text className="text-white font-bold">
-                  {currentDietPlan?.carbsPercentage}%
+                  {parseFloat(currentDietPlan?.carbsPercentage)}%
                 </Text>
               </View>
               <Text className="mt-2 font-medium text-gray-700">Carbs</Text>
@@ -197,7 +197,7 @@ export default function NutritionInfoScreen() {
             <View className="items-center">
               <View className="w-16 h-16 rounded-full bg-blue-500 items-center justify-center">
                 <Text className="text-white font-bold">
-                  {currentDietPlan?.fatPercentage}%
+                  {parseFloat(currentDietPlan?.fatPercentage)}%
                 </Text>
               </View>
               <Text className="mt-2 font-medium text-gray-700">Fat</Text>
@@ -211,7 +211,7 @@ export default function NutritionInfoScreen() {
             Daily Meals
           </Text>
 
-          {currentDietPlan?.meals?.map((meal, index) => (
+          {currentDietPlan?.meals?.map((meal: any, index: any) => (
             <View
               key={index}
               className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden"
@@ -237,7 +237,7 @@ export default function NutritionInfoScreen() {
 
                 <Text className="text-gray-700 mb-3">{meal?.description}</Text>
                 <Text className="text-pink-600 font-medium mb-2">
-                  {meal?.calories} calories
+                  {parseFloat(meal?.calories)} calories
                 </Text>
 
                 {/* Nutrients */}
@@ -245,20 +245,20 @@ export default function NutritionInfoScreen() {
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Protein</Text>
                     <Text className="font-medium">
-                      {meal?.protein}
+                      {parseFloat(meal?.protein)}
                     </Text>
                   </View>
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Carbs</Text>
-                    <Text className="font-medium">{meal?.carbs}</Text>
+                    <Text className="font-medium">{parseFloat(meal?.carbs)}</Text>
                   </View>
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Fat</Text>
-                    <Text className="font-medium">{meal?.fat}</Text>
+                    <Text className="font-medium">{parseFloat(meal?.fat)}</Text>
                   </View>
                   <View className="items-center">
                     <Text className="text-xs text-gray-500">Fiber</Text>
-                    <Text className="font-medium">{meal?.fiber}</Text>
+                    <Text className="font-medium">{parseFloat(meal?.fiber)}</Text>
                   </View>
                 </View>
 

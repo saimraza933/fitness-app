@@ -41,26 +41,26 @@ const MealCard = ({ meal }: any) => {
           <View className="items-center">
             <Text className="text-xs text-gray-500">Calories</Text>
             <Text className="font-medium">
-              {meal?.calories}
+              {parseFloat(meal?.calories)}
             </Text>
           </View>
           <View className="items-center">
             <Text className="text-xs text-gray-500">Protein</Text>
             <Text className="font-medium">
-              {meal?.protein}
+              {parseFloat(meal?.protein)}
             </Text>
           </View>
           <View className="items-center">
             <Text className="text-xs text-gray-500">Carbs</Text>
-            <Text className="font-medium">{meal?.carbs}</Text>
+            <Text className="font-medium">{parseFloat(meal?.carbs)}</Text>
           </View>
           <View className="items-center">
             <Text className="text-xs text-gray-500">Fat</Text>
-            <Text className="font-medium">{meal?.fat}</Text>
+            <Text className="font-medium">{parseFloat(meal?.fat)}</Text>
           </View>
           <View className="items-center">
             <Text className="text-xs text-gray-500">Fiber</Text>
-            <Text className="font-medium">{meal?.fiber}</Text>
+            <Text className="font-medium">{parseFloat(meal?.fiber)}</Text>
           </View>
         </View>
 

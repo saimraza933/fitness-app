@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -139,6 +139,9 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
   const [dietPlanScheduledDate, setDietPlanScheduledDate] = useState(new Date())
   const [showDietDropdown, setShowDietDropdown] = useState(false)
   const [isAssigningDiet, setIsAssigningDiet] = useState(false)
+  const dropdownRef: any = useRef(null);
+  const dietDropdownRef: any = useRef(null);
+
   // Mock data for the client if not provided
   const clientData = client || {
     id: "1",
@@ -295,9 +298,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
           formattedDate,
           Number(userId)
         );
-
-        console.log("Assignment successful:", response);
-
+        setSelectedPlanId(null)
         setShowPlanDropdown(false);
         Alert.alert(
           "Success",
@@ -379,18 +380,11 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
       return;
     }
     const formattedDate = formatDateForApi(goalStartDate);
-    const trainerId = await AsyncStorage.getItem('user_id');
-
-    if (trainerId === null) {
-      throw new Error('Trainer ID not found in storage');
-    }
-    const parsedTrainerId = parseInt(trainerId, 10);
-
     try {
       setIsAssigningGoal(true);
       const response = await trainerApi.assignClientWeeklyGoal(
         Number(clientData.id),
-        parsedTrainerId,
+        Number(userId),
         goalTitle,
         formattedDate
       );
@@ -416,13 +410,7 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
 
   const saveNotes = async () => {
     try {
-      // Show loading indicator or disable the button here if needed
-      console.log(`Saving notes: ${notes} for client ID: ${clientData.id}`);
-
-      // Call the API to update client notes
       await trainerApi.updateClientNotes(clientData.id, notes);
-
-      // Update successful
       setIsEditingNotes(false);
       Alert.alert("Success", "Client notes updated successfully");
     } catch (error) {
@@ -514,13 +502,13 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
 
             <View>
               <TouchableOpacity
+                ref={dropdownRef}
                 className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white mb-3"
-                onPress={(event) => {
-                  const target = event.target as any;
-                  target.measure((x, y, width, height, pageX, pageY) => {
+                onPress={() => {
+                  dropdownRef.current?.measureInWindow((x: any, y: any, width: any, height: any) => {
                     setDropdownPosition({
-                      top: pageY + height,
-                      left: pageX,
+                      top: y + height,
+                      left: x,
                       width: width,
                     });
                     setShowPlanDropdown(true);
@@ -534,7 +522,59 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                 </Text>
                 <ChevronDown size={20} color="#9ca3af" />
               </TouchableOpacity>
-
+              <Modal
+                visible={showPlanDropdown}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowPlanDropdown(false)}
+              >
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  activeOpacity={1}
+                  onPress={() => setShowPlanDropdown(false)}
+                >
+                  <View
+                    className="bg-white border border-gray-300 rounded-lg shadow-md"
+                    style={{
+                      position: "absolute",
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      width: dropdownPosition.width,
+                      zIndex: 9999,
+                      elevation: 5,
+                    }}
+                  >
+                    {loadingPlans ? (
+                      <View className="p-3 items-center">
+                        <ActivityIndicator size="small" color="#be185d" />
+                        <Text className="text-gray-500 mt-1">
+                          Loading plans...
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView showsVerticalScrollIndicator className="max-h-[200]">
+                        {workoutPlans?.length > 0 ? workoutPlans.map((plan) => (
+                          <TouchableOpacity
+                            key={plan.id}
+                            className={`p-3 border-b border-gray-100 ${plan.name === selectedPlan ? "bg-pink-50" : ""}`}
+                            onPress={() => {
+                              setSelectedPlan(plan.name);
+                              setSelectedPlanId(plan.id);
+                              setShowPlanDropdown(false);
+                            }}
+                          >
+                            <Text
+                              className={`${plan.name === selectedPlan ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                            >
+                              {plan.name}
+                            </Text>
+                          </TouchableOpacity>
+                        )) : <Text className="py-3 text-center">No workout plans found</Text>}
+                      </ScrollView>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </Modal>
               {/* Schedule Date Selector */}
               <View className="mb-3">
                 <Text className="text-gray-700 mb-2 font-medium">
@@ -570,58 +610,6 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                   </View>
                 )}
               </View>
-
-              <Modal
-                visible={showPlanDropdown}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowPlanDropdown(false)}
-              >
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  activeOpacity={1}
-                  onPress={() => setShowPlanDropdown(false)}
-                >
-                  <View
-                    className="bg-white border border-gray-300 rounded-lg shadow-md"
-                    style={{
-                      position: "absolute",
-                      top: dropdownPosition.top,
-                      left: dropdownPosition.left,
-                      width: dropdownPosition.width,
-                      zIndex: 9999,
-                      elevation: 5,
-                    }}
-                  >
-                    {loadingPlans ? (
-                      <View className="p-3 items-center">
-                        <ActivityIndicator size="small" color="#be185d" />
-                        <Text className="text-gray-500 mt-1">
-                          Loading plans...
-                        </Text>
-                      </View>
-                    ) : (
-                      workoutPlans.map((plan) => (
-                        <TouchableOpacity
-                          key={plan.id}
-                          className={`p-3 border-b border-gray-100 ${plan.name === selectedPlan ? "bg-pink-50" : ""}`}
-                          onPress={() => {
-                            setSelectedPlan(plan.name);
-                            setSelectedPlanId(plan.id);
-                            setShowPlanDropdown(false);
-                          }}
-                        >
-                          <Text
-                            className={`${plan.name === selectedPlan ? "text-pink-600 font-medium" : "text-gray-800"}`}
-                          >
-                            {plan.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    )}
-                  </View>
-                </TouchableOpacity>
-              </Modal>
             </View>
 
             <TouchableOpacity
@@ -648,13 +636,25 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
             <View>
               <TouchableOpacity
                 className="flex-row justify-between items-center border border-gray-300 rounded-lg p-3 bg-white mb-3"
-                onPress={(event) => {
-                  const target = event.target as any;
-                  target.measure((x, y, width, height, pageX, pageY) => {
+                ref={dietDropdownRef}
+                // onPress={(event) => {
+                //   const target = event.target as any;
+                //   target.measure((x, y, width, height, pageX, pageY) => {
+                //     setDropdownPosition({
+                //       top: pageY + height,
+                //       left: pageX,
+                //       width: width,
+                //     });
+                //     setShowDietDropdown(true);
+                //   });
+                // }}
+
+                onPress={() => {
+                  dietDropdownRef.current?.measureInWindow((x, y, width, height) => {
                     setDropdownPosition({
-                      top: pageY + height,
-                      left: pageX,
-                      width: width,
+                      top: y + height,
+                      left: x,
+                      width,
                     });
                     setShowDietDropdown(true);
                   });
@@ -667,7 +667,62 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                 </Text>
                 <ChevronDown size={20} color="#9ca3af" />
               </TouchableOpacity>
-
+              <Modal
+                visible={showDietDropdown}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowDietDropdown(false)}
+              >
+                <TouchableOpacity
+                  style={{ flex: 1 }}
+                  activeOpacity={1}
+                  onPress={() => setShowDietDropdown(false)}
+                >
+                  <View
+                    className="bg-white border border-gray-300 rounded-lg shadow-md"
+                    style={{
+                      position: "absolute",
+                      top: dropdownPosition.top,
+                      left: dropdownPosition.left,
+                      width: dropdownPosition.width,
+                      zIndex: 9999,
+                      elevation: 5,
+                    }}
+                  >
+                    {loading ? (
+                      <View className="p-3 items-center">
+                        <ActivityIndicator size="small" color="#be185d" />
+                        <Text className="text-gray-500 mt-1">
+                          Loading plans...
+                        </Text>
+                      </View>
+                    ) : (
+                      <ScrollView showsVerticalScrollIndicator className="max-h-[200]">
+                        {
+                          dietPlansList?.length > 0 ? dietPlansList.map((plan: any) => (
+                            <TouchableOpacity
+                              key={plan.id}
+                              className={`p-3 border-b border-gray-100 ${plan.id === selectedDietPlan?.id ? "bg-pink-50" : ""}`}
+                              onPress={() => {
+                                setSelectedDietPlan(plan);
+                                setShowDietDropdown(false);
+                              }}
+                            >
+                              <Text
+                                className={`${plan.id === selectedDietPlan?.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
+                              >
+                                {plan.name}
+                              </Text>
+                            </TouchableOpacity>
+                          )) : (
+                            <Text className="py-3 text-center">No diet plans found</Text>
+                          )
+                        }
+                      </ScrollView>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </Modal>
               {/* Schedule Date Selector */}
               <View className="mb-3">
                 <Text className="text-gray-700 mb-2 font-medium">
@@ -703,57 +758,6 @@ const ClientDetails = ({ client, onBack }: ClientDetailsProps) => {
                   </View>
                 )}
               </View>
-
-              <Modal
-                visible={showDietDropdown}
-                transparent={true}
-                animationType="fade"
-                onRequestClose={() => setShowDietDropdown(false)}
-              >
-                <TouchableOpacity
-                  style={{ flex: 1 }}
-                  activeOpacity={1}
-                  onPress={() => setShowDietDropdown(false)}
-                >
-                  <View
-                    className="bg-white border border-gray-300 rounded-lg shadow-md"
-                    style={{
-                      position: "absolute",
-                      top: dropdownPosition.top,
-                      left: dropdownPosition.left,
-                      width: dropdownPosition.width,
-                      zIndex: 9999,
-                      elevation: 5,
-                    }}
-                  >
-                    {loading ? (
-                      <View className="p-3 items-center">
-                        <ActivityIndicator size="small" color="#be185d" />
-                        <Text className="text-gray-500 mt-1">
-                          Loading plans...
-                        </Text>
-                      </View>
-                    ) : (
-                      dietPlansList.map((plan: any) => (
-                        <TouchableOpacity
-                          key={plan.id}
-                          className={`p-3 border-b border-gray-100 ${plan.id === selectedDietPlan?.id ? "bg-pink-50" : ""}`}
-                          onPress={() => {
-                            setSelectedDietPlan(plan);
-                            setShowDietDropdown(false);
-                          }}
-                        >
-                          <Text
-                            className={`${plan.id === selectedDietPlan?.id ? "text-pink-600 font-medium" : "text-gray-800"}`}
-                          >
-                            {plan.name}
-                          </Text>
-                        </TouchableOpacity>
-                      ))
-                    )}
-                  </View>
-                </TouchableOpacity>
-              </Modal>
             </View>
 
             <TouchableOpacity

@@ -239,7 +239,7 @@ const ProgressSection = () => {
 
                         <View className="flex-row justify-between mt-2">
                           <Text className="text-sm text-pink-700">
-                            Current weight: {client.weight}
+                            Current weight: {parseFloat(client.weight)} lbs
                           </Text>
                         </View>
                       </View>

@@ -23,6 +23,19 @@ api.interceptors.request.use(
   },
 );
 
+// Response interceptor to catch 401 (unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const status = error?.response?.status;
+    if (status === 401) {
+      // await store.dispatch(logout());
+      // router.replace("/login");
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const authApi = {
   login: async (email: string, password: string) => {
     const response = await api.post("/auth/login", { email, password });
@@ -171,7 +184,6 @@ export const clientApi = {
     return response.data;
   },
 };
-
 
 export const trainerApi = {
   // Get all trainers
@@ -332,12 +344,7 @@ export const trainerApi = {
       );
       console.log('assign daata of api', response?.data)
       return response.data;
-    } catch (error) {
-      console.error("Error assigning workout to client:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-      }
+    } catch (error: any) {
       throw error;
     }
   },

@@ -125,6 +125,7 @@ export const resetPassword = createAsyncThunk(
 
       // Call the API
       const response = await authApi.resetPassword(email);
+      console.log(response.data)
       return response.success;
     } catch (error: any) {
       console.error("Error during password reset:", error);
